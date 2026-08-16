@@ -1,0 +1,94 @@
+{
+  "title": "DCS Server Bot Operations Center",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to DCSServerBot",
+        "description": "The DCSServerBot RestAPI plugin must be enabled. Use an API key and do not expose the API to the internet.",
+        "data": {
+          "name": "Name",
+          "url": "REST API URL",
+          "api_key": "API key",
+          "verify_ssl": "Verify TLS certificate"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Update API key",
+        "description": "Enter the current DCSServerBot REST API key.",
+        "data": {
+          "api_key": "API key"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to DCSServerBot",
+      "invalid_auth": "The API key was rejected",
+      "invalid_response": "DCSServerBot returned an invalid response",
+      "invalid_url": "Enter a valid HTTP or HTTPS URL"
+    },
+    "abort": {
+      "already_configured": "This DCSServerBot API is already configured",
+      "reauth_successful": "Authentication was updated"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Operations Center options",
+        "description": "Control actions can start, stop or restart real DCS servers. Leave them disabled for monitoring-only installations.",
+        "data": {
+          "enable_control": "Enable server control actions",
+          "scan_interval": "Polling interval (seconds)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "api_connected": {"name": "API connected"},
+      "running": {"name": "Running"},
+      "paused": {"name": "Mission paused"}
+    },
+    "sensor": {
+      "server_count": {"name": "Servers"},
+      "online_server_count": {"name": "Online servers"},
+      "total_player_count": {"name": "Total players"},
+      "registered_pilots": {"name": "Registered pilots"},
+      "total_sorties": {"name": "Total sorties"},
+      "total_kills": {"name": "Total kills"},
+      "total_deaths": {"name": "Total deaths"},
+      "total_playtime": {"name": "Total playtime"},
+      "status": {"name": "Status"},
+      "players": {"name": "Players"},
+      "mission": {"name": "Mission"},
+      "mission_uptime": {"name": "Mission uptime"},
+      "temperature": {"name": "Mission temperature"},
+      "wind_speed": {"name": "Mission wind speed"},
+      "extensions": {"name": "Extensions"},
+      "address": {"name": "Server address"},
+      "restart_time": {"name": "Scheduled restart"},
+      "unique_pilots_24h": {"name": "Unique pilots (24 h)"},
+      "unique_pilots_7d": {"name": "Unique pilots (7 d)"},
+      "unique_pilots_30d": {"name": "Unique pilots (30 d)"},
+      "attendance": {"name": "Attendance details"}
+    },
+    "button": {
+      "start": {"name": "Start server"},
+      "stop": {"name": "Stop server"},
+      "restart": {"name": "Restart server"},
+      "pause_mission": {"name": "Pause mission"},
+      "resume_mission": {"name": "Resume mission"},
+      "restart_mission": {"name": "Restart mission"}
+    },
+    "select": {
+      "mission_select": {"name": "Load mission"}
+    }
+  },
+  "exceptions": {
+    "server_not_found": {"message": "Server {server_name} was not found."},
+    "control_disabled": {"message": "Control actions are disabled in integration options."},
+    "mission_required": {"message": "A mission name is required."},
+    "control_failed": {"message": "DCSServerBot control failed: {error}"},
+    "unknown_mission": {"message": "Mission {mission_name} is not available."}
+  }
+}

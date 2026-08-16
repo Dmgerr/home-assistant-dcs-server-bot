@@ -1,0 +1,56 @@
+start_server:
+  name: Start server
+  description: Start a stopped DCS server. Control must be enabled in integration options.
+  fields:
+    server_name: &server_name
+      name: Server
+      required: true
+      selector:
+        text:
+    entry_id: &entry_id
+      name: Integration entry ID
+      required: false
+      selector:
+        text:
+stop_server:
+  name: Stop server
+  description: Stop a running DCS server.
+  fields:
+    server_name: *server_name
+    entry_id: *entry_id
+restart_server:
+  name: Restart server
+  description: Restart a DCS server.
+  fields:
+    server_name: *server_name
+    entry_id: *entry_id
+pause_mission:
+  name: Pause mission
+  description: Pause the current mission.
+  fields:
+    server_name: *server_name
+    entry_id: *entry_id
+resume_mission:
+  name: Resume mission
+  description: Resume the current mission.
+  fields:
+    server_name: *server_name
+    entry_id: *entry_id
+restart_mission:
+  name: Restart mission
+  description: Restart the current mission.
+  fields:
+    server_name: *server_name
+    entry_id: *entry_id
+load_mission:
+  name: Load mission
+  description: Load one of the missions available to the selected DCS server.
+  fields:
+    server_name: *server_name
+    mission_name:
+      name: Mission
+      required: true
+      selector:
+        text:
+    entry_id: *entry_id
+

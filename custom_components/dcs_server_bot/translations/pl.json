@@ -1,0 +1,90 @@
+{
+  "title": "DCS Server Bot Operations Center",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Połącz z DCSServerBot",
+        "description": "Plugin RestAPI w DCSServerBot musi być włączony. Użyj klucza API i nie wystawiaj API do internetu.",
+        "data": {
+          "name": "Nazwa",
+          "url": "Adres REST API",
+          "api_key": "Klucz API",
+          "verify_ssl": "Weryfikuj certyfikat TLS"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Zaktualizuj klucz API",
+        "description": "Podaj aktualny klucz REST API DCSServerBot.",
+        "data": {"api_key": "Klucz API"}
+      }
+    },
+    "error": {
+      "cannot_connect": "Nie można połączyć się z DCSServerBot",
+      "invalid_auth": "Klucz API został odrzucony",
+      "invalid_response": "DCSServerBot zwrócił nieprawidłową odpowiedź",
+      "invalid_url": "Podaj poprawny adres HTTP lub HTTPS"
+    },
+    "abort": {
+      "already_configured": "To API DCSServerBot jest już skonfigurowane",
+      "reauth_successful": "Uwierzytelnianie zostało zaktualizowane"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opcje Operations Center",
+        "description": "Sterowanie może uruchamiać, zatrzymywać i restartować prawdziwe serwery DCS. Dla samego monitoringu pozostaw je wyłączone.",
+        "data": {
+          "enable_control": "Włącz sterowanie serwerami",
+          "scan_interval": "Interwał odpytywania (sekundy)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "api_connected": {"name": "Połączenie z API"},
+      "running": {"name": "Uruchomiony"},
+      "paused": {"name": "Misja wstrzymana"}
+    },
+    "sensor": {
+      "server_count": {"name": "Serwery"},
+      "online_server_count": {"name": "Serwery online"},
+      "total_player_count": {"name": "Gracze łącznie"},
+      "registered_pilots": {"name": "Zarejestrowani piloci"},
+      "total_sorties": {"name": "Wyloty łącznie"},
+      "total_kills": {"name": "Zniszczenia łącznie"},
+      "total_deaths": {"name": "Straty łącznie"},
+      "total_playtime": {"name": "Czas lotów łącznie"},
+      "status": {"name": "Stan"},
+      "players": {"name": "Gracze"},
+      "mission": {"name": "Misja"},
+      "mission_uptime": {"name": "Czas misji"},
+      "temperature": {"name": "Temperatura misji"},
+      "wind_speed": {"name": "Wiatr w misji"},
+      "extensions": {"name": "Rozszerzenia"},
+      "address": {"name": "Adres serwera"},
+      "restart_time": {"name": "Planowany restart"},
+      "unique_pilots_24h": {"name": "Unikalni piloci (24 h)"},
+      "unique_pilots_7d": {"name": "Unikalni piloci (7 dni)"},
+      "unique_pilots_30d": {"name": "Unikalni piloci (30 dni)"},
+      "attendance": {"name": "Szczegóły frekwencji"}
+    },
+    "button": {
+      "start": {"name": "Uruchom serwer"},
+      "stop": {"name": "Zatrzymaj serwer"},
+      "restart": {"name": "Restartuj serwer"},
+      "pause_mission": {"name": "Wstrzymaj misję"},
+      "resume_mission": {"name": "Wznów misję"},
+      "restart_mission": {"name": "Restartuj misję"}
+    },
+    "select": {"mission_select": {"name": "Wczytaj misję"}}
+  },
+  "exceptions": {
+    "server_not_found": {"message": "Nie znaleziono serwera {server_name}."},
+    "control_disabled": {"message": "Sterowanie jest wyłączone w opcjach integracji."},
+    "mission_required": {"message": "Nazwa misji jest wymagana."},
+    "control_failed": {"message": "Sterowanie DCSServerBot nie powiodło się: {error}"},
+    "unknown_mission": {"message": "Misja {mission_name} nie jest dostępna."}
+  }
+}

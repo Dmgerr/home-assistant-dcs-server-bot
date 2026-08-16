@@ -1,0 +1,72 @@
+title: DCS Operations Center
+views:
+  - title: Centrum operacyjne
+    path: overview
+    type: sections
+    icon: mdi:radar
+    max_columns: 4
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: DCSServerBot
+            heading_style: title
+            icon: mdi:server-network
+          - type: tile
+            entity: binary_sensor.dcs_server_bot_api_connected
+            name: Połączenie API
+            grid_options: {columns: 6, rows: 2}
+          - type: tile
+            entity: sensor.dcs_server_bot_online_servers
+            name: Serwery online
+            grid_options: {columns: 6, rows: 2}
+          - type: tile
+            entity: sensor.dcs_server_bot_total_players
+            name: Gracze
+            grid_options: {columns: 6, rows: 2}
+          - type: history-graph
+            title: Aktywność
+            hours_to_show: 24
+            entities:
+              - sensor.dcs_server_bot_total_players
+              - sensor.dcs_server_bot_online_servers
+            grid_options: {columns: full, rows: 5}
+      - type: grid
+        cards:
+          - type: heading
+            heading: Serwer DCS
+            heading_style: title
+            icon: mdi:airplane-cog
+          - type: tile
+            entity: sensor.dcs_server_status
+            name: Stan
+            grid_options: {columns: 6, rows: 2}
+          - type: tile
+            entity: sensor.dcs_server_players
+            name: Gracze
+            grid_options: {columns: 6, rows: 2}
+          - type: tile
+            entity: sensor.dcs_server_mission
+            name: Misja
+            grid_options: {columns: full, rows: 2}
+          - type: tile
+            entity: sensor.dcs_server_mission_uptime
+            name: Czas misji
+            grid_options: {columns: 6, rows: 2}
+          - type: tile
+            entity: sensor.dcs_server_scheduled_restart
+            name: Planowany restart
+            grid_options: {columns: 6, rows: 2}
+      - type: grid
+        cards:
+          - type: heading
+            heading: Sterowanie
+            heading_style: title
+            icon: mdi:shield-key
+          - type: markdown
+            content: >-
+              Sterowanie musi być włączone w opcjach integracji. Sprawdź
+              automatycznie utworzone encje przycisków dla konkretnego serwera i
+              dodaj do każdego `confirmation`.
+            grid_options: {columns: full, rows: 3}
+
