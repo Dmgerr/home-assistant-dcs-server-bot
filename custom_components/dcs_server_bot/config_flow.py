@@ -143,14 +143,11 @@ class DCSServerBotConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
     ) -> DCSServerBotOptionsFlow:
-        return DCSServerBotOptionsFlow(config_entry)
+        return DCSServerBotOptionsFlow()
 
 
-class DCSServerBotOptionsFlow(config_entries.OptionsFlow):
+class DCSServerBotOptionsFlow(config_entries.OptionsFlowWithReload):
     """Control polling and dangerous actions separately from credentials."""
-
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self.config_entry = config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -179,4 +176,3 @@ class DCSServerBotOptionsFlow(config_entries.OptionsFlow):
                 }
             ),
         )
-
