@@ -7,7 +7,17 @@ from typing import Any
 
 from aiohttp import ClientError, ClientResponse, ClientSession, ClientTimeout
 
-from .const import DEFAULT_TIMEOUT
+from .const import CONTROL_TIMEOUT, DEFAULT_TIMEOUT
+
+MISSION_RESTART_ENDPOINT = "/instance/mission/restart"
+SERVER_RESTART_ENDPOINT = "/instance/restart"
+LONG_RUNNING_CONTROL_ENDPOINTS = {
+    "/instance/start",
+    "/instance/stop",
+    SERVER_RESTART_ENDPOINT,
+    MISSION_RESTART_ENDPOINT,
+    "/instance/mission/load",
+}
 
 
 class DCSServerBotError(Exception):
@@ -79,9 +89,7 @@ class DCSServerBotClient:
             body["server_name"] = server_name
         if action == "ban":
             body["days"] = days
-        payload = await self._async_request(
-            "POST", f"/{action}", json_data=body, moderation=True
-        )
+        payload = await self._async_request("POST", f"/{action}", json_data=body, moderation=True)
         if not isinstance(payload, Mapping):
             raise DCSServerBotResponseError("Moderation endpoint returned invalid data")
         return dict(payload)
@@ -99,9 +107,7 @@ class DCSServerBotClient:
             server = dict(item)
             server.pop("password", None)
             server["players"] = [
-                dict(player)
-                for player in server.get("players", [])
-                if isinstance(player, Mapping)
+                dict(player) for player in server.get("players", []) if isinstance(player, Mapping)
             ]
             server["extensions"] = [
                 dict(extension)
@@ -134,9 +140,7 @@ class DCSServerBotClient:
             )
         return dict(payload)
 
-    async def async_get_server_attendance(
-        self, server_name: str
-    ) -> dict[str, Any]:
+    async def async_get_server_attendance(self, server_name: str) -> dict[str, Any]:
         """Return attendance statistics for one DCS server."""
         payload = await self._async_request(
             "GET", "/server_attendance", params={"server_name": server_name}
@@ -158,7 +162,28 @@ class DCSServerBotClient:
         params: dict[str, str] = {"server_name": server_name}
         if mission_name is not None:
             params["mission_name"] = mission_name
-        payload = await self._async_request("POST", endpoint, params=params)
+        timeout = (
+            ClientTimeout(total=CONTROL_TIMEOUT)
+            if endpoint in LONG_RUNNING_CONTROL_ENDPOINTS
+            else None
+        )
+        try:
+            payload = await self._async_request("POST", endpoint, params=params, timeout=timeout)
+        except DCSServerBotResponseError as err:
+            if not (
+                endpoint == MISSION_RESTART_ENDPOINT
+                and str(err) == "Timeout while restarting mission."
+            ):
+                raise
+            payload = await self._async_request(
+                "POST",
+                SERVER_RESTART_ENDPOINT,
+                params={"server_name": server_name},
+                timeout=ClientTimeout(total=CONTROL_TIMEOUT),
+            )
+            if isinstance(payload, Mapping):
+                payload = dict(payload)
+                payload["fallback"] = "server_restart"
         if not isinstance(payload, Mapping):
             raise DCSServerBotResponseError("Control endpoint returned invalid data")
         return dict(payload)
@@ -171,6 +196,7 @@ class DCSServerBotClient:
         params: Mapping[str, str] | None = None,
         json_data: Mapping[str, Any] | None = None,
         moderation: bool = False,
+        timeout: ClientTimeout | None = None,
     ) -> Any:
         headers = {"Accept": "application/json"}
         if self._api_key:
@@ -187,15 +213,13 @@ class DCSServerBotClient:
                 params=params,
                 json=json_data,
                 ssl=self._verify_ssl,
-                timeout=self._timeout,
+                timeout=timeout or self._timeout,
             ) as response:
                 await self._raise_for_status(response)
                 try:
                     return await response.json(content_type=None)
                 except (ValueError, TypeError) as err:
-                    raise DCSServerBotResponseError(
-                        f"Invalid JSON returned by {path}"
-                    ) from err
+                    raise DCSServerBotResponseError(f"Invalid JSON returned by {path}") from err
         except DCSServerBotError:
             raise
         except (TimeoutError, ClientError, OSError) as err:

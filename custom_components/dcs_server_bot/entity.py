@@ -5,7 +5,7 @@ from __future__ import annotations
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import CONFIGURATION_URL, DOMAIN
 from .coordinator import DCSServerBotCoordinator
 
 
@@ -22,7 +22,7 @@ class DCSServerBotEntity(CoordinatorEntity[DCSServerBotCoordinator]):
             name=coordinator.entry.title,
             manufacturer="Special-K's Flightsim Bots",
             model="DCSServerBot REST API",
-            configuration_url=coordinator.client.base_url,
+            configuration_url=CONFIGURATION_URL,
         )
 
 
@@ -48,11 +48,10 @@ class DCSServerEntity(CoordinatorEntity[DCSServerBotCoordinator]):
             manufacturer="Eagle Dynamics / DCSServerBot",
             model="DCS Dedicated Server",
             via_device=(DOMAIN, coordinator.entry.entry_id),
-            configuration_url=coordinator.client.base_url,
+            configuration_url=CONFIGURATION_URL,
         )
 
     @property
     def server(self) -> dict:
         """Return current server data."""
         return self.coordinator.server(self.server_name)
-

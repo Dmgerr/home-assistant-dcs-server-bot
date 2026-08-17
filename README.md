@@ -83,6 +83,10 @@ temperature, wind, extensions, address and scheduled restart.
 When control is enabled, the server device also receives buttons and a mission
 selector. Dashboard buttons should always use a confirmation dialog.
 
+If DCSServerBot times out while replacing the current mission during a mission
+restart, the integration retries through the bot's server restart endpoint. This
+stop/start fallback reloads the same mission without modifying DCSServerBot.
+
 When moderation is enabled, each server also receives an active-player selector
 and kick/ban buttons. Because the upstream RestAPI has no moderation endpoints,
 this requires the optional, separately secured
