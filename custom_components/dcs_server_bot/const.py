@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.8 seconds
+Output:
 """Constants for the DCS Server Bot integration."""
 
 from __future__ import annotations
@@ -26,6 +29,7 @@ MIN_SCAN_INTERVAL = 10
 MAX_SCAN_INTERVAL = 300
 
 DEFAULT_TIMEOUT = 15
+CONTROL_TIMEOUT = 600
 UPDATE_INTERVAL = timedelta(seconds=DEFAULT_SCAN_INTERVAL)
 STATISTICS_INTERVAL = timedelta(minutes=15)
 
@@ -62,3 +66,4 @@ CONTROL_ENDPOINTS: dict[str, str] = {
 }
 
 RUNNING_STATES = {"running", "paused"}
+
