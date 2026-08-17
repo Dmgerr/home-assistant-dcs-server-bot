@@ -6,6 +6,7 @@ from datetime import timedelta
 
 DOMAIN = "dcs_server_bot"
 NAME = "DCS Server Bot Operations Center"
+CONFIGURATION_URL = f"homeassistant://config/integrations/integration/{DOMAIN}"
 
 CONF_URL = "url"
 CONF_API_KEY = "api_key"
