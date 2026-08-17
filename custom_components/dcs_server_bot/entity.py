@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.8 seconds
+Output:
 """Entity helpers for DCS Server Bot."""
 
 from __future__ import annotations
@@ -5,7 +8,7 @@ from __future__ import annotations
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import CONFIGURATION_URL, DOMAIN
 from .coordinator import DCSServerBotCoordinator
 
 
@@ -22,7 +25,7 @@ class DCSServerBotEntity(CoordinatorEntity[DCSServerBotCoordinator]):
             name=coordinator.entry.title,
             manufacturer="Special-K's Flightsim Bots",
             model="DCSServerBot REST API",
-            configuration_url=coordinator.client.base_url,
+            configuration_url=CONFIGURATION_URL,
         )
 
 
@@ -48,7 +51,7 @@ class DCSServerEntity(CoordinatorEntity[DCSServerBotCoordinator]):
             manufacturer="Eagle Dynamics / DCSServerBot",
             model="DCS Dedicated Server",
             via_device=(DOMAIN, coordinator.entry.entry_id),
-            configuration_url=coordinator.client.base_url,
+            configuration_url=CONFIGURATION_URL,
         )
 
     @property
