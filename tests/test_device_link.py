@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 0.8 seconds
-Output:
 """Tests for the device configuration link."""
 
 from __future__ import annotations
@@ -24,4 +21,3 @@ def test_configuration_url_opens_home_assistant_integration() -> None:
     assert const.CONFIGURATION_URL == (
         "homeassistant://config/integrations/integration/dcs_server_bot"
     )
-
