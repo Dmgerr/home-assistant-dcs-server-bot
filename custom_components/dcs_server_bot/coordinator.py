@@ -18,8 +18,10 @@ from .api import (
 )
 from .const import (
     CONF_ENABLE_CONTROL,
+    CONF_ENABLE_MODERATION,
     CONF_SCAN_INTERVAL,
     DEFAULT_ENABLE_CONTROL,
+    DEFAULT_ENABLE_MODERATION,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     EVENT_PLAYER_JOINED,
@@ -45,6 +47,10 @@ class DCSServerBotCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.enable_control = bool(
             entry.options.get(CONF_ENABLE_CONTROL, DEFAULT_ENABLE_CONTROL)
         )
+        self.enable_moderation = bool(
+            entry.options.get(CONF_ENABLE_MODERATION, DEFAULT_ENABLE_MODERATION)
+        )
+        self.selected_players: dict[str, str] = {}
         scan_interval = int(
             entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
         )
@@ -79,6 +85,12 @@ class DCSServerBotCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         )
 
             now = datetime.now(UTC)
+            moderation_available = False
+            if self.enable_moderation:
+                try:
+                    moderation_available = await self.client.async_check_moderation()
+                except DCSServerBotError as err:
+                    _LOGGER.warning("Moderation bridge is unavailable: %s", err)
             if (
                 self._statistics_updated_at is None
                 or now - self._statistics_updated_at >= STATISTICS_INTERVAL
@@ -93,6 +105,7 @@ class DCSServerBotCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "missions": missions,
                 "statistics": self._statistics,
                 "attendance": self._attendance,
+                "moderation_available": moderation_available,
                 "summary": {
                     "server_count": len(servers),
                     "online_count": sum(

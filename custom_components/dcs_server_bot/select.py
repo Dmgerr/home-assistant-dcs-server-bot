@@ -20,14 +20,22 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator: DCSServerBotCoordinator = hass.data[DOMAIN][entry.entry_id]
-    if not coordinator.enable_control:
-        return
-    async_add_entities(
-        [
+    entities: list[SelectEntity] = []
+    if coordinator.enable_control:
+        entities.extend(
+            [
             DCSServerMissionSelect(coordinator, server_name)
             for server_name in coordinator.data.get("servers", {})
-        ]
-    )
+            ]
+        )
+    if coordinator.enable_moderation:
+        entities.extend(
+            [
+                DCSServerPlayerSelect(coordinator, server_name)
+                for server_name in coordinator.data.get("servers", {})
+            ]
+        )
+    async_add_entities(entities)
 
 
 class DCSServerMissionSelect(DCSServerEntity, SelectEntity):
@@ -75,3 +83,45 @@ class DCSServerMissionSelect(DCSServerEntity, SelectEntity):
             ) from err
         await self.coordinator.async_request_refresh()
 
+
+class DCSServerPlayerSelect(DCSServerEntity, SelectEntity):
+    """Select an active player for an explicit moderation action."""
+
+    _attr_translation_key = "player_select"
+    _attr_icon = "mdi:account-search"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator, server_name: str) -> None:
+        super().__init__(coordinator, server_name, "player_select")
+
+    @property
+    def available(self) -> bool:
+        return (
+            super().available
+            and bool(self.coordinator.data.get("moderation_available"))
+            and bool(self.options)
+        )
+
+    @property
+    def options(self) -> list[str]:
+        return sorted(
+            {
+                str(player.get("nick"))
+                for player in self.server.get("players", [])
+                if player.get("nick")
+            }
+        )
+
+    @property
+    def current_option(self) -> str | None:
+        selected = self.coordinator.selected_players.get(self.server_name)
+        return selected if selected in self.options else None
+
+    async def async_select_option(self, option: str) -> None:
+        if option not in self.options:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="unknown_player",
+                translation_placeholders={"player_name": option},
+            )
+        self.coordinator.selected_players[self.server_name] = option
+        self.async_write_ha_state()

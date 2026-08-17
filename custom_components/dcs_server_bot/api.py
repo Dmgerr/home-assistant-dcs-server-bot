@@ -37,17 +37,54 @@ class DCSServerBotClient:
         *,
         verify_ssl: bool = True,
         timeout: int = DEFAULT_TIMEOUT,
+        moderation_url: str | None = None,
     ) -> None:
         self._session = session
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
         self._verify_ssl = verify_ssl
         self._timeout = ClientTimeout(total=timeout)
+        self._moderation_url = moderation_url.rstrip("/") if moderation_url else None
 
     @property
     def base_url(self) -> str:
         """Return the configured API base URL."""
         return self._base_url
+
+    @property
+    def moderation_url(self) -> str | None:
+        """Return the optional companion moderation endpoint."""
+        return self._moderation_url
+
+    async def async_check_moderation(self) -> bool:
+        """Validate that the optional moderation bridge is reachable."""
+        payload = await self._async_request("GET", "/health", moderation=True)
+        return isinstance(payload, Mapping) and payload.get("status") == "ok"
+
+    async def async_moderate(
+        self,
+        action: str,
+        player_name: str,
+        *,
+        server_name: str | None = None,
+        reason: str = "Moderation by Home Assistant",
+        days: int = 0,
+    ) -> dict[str, Any]:
+        """Kick, ban, or unban a player through the companion bridge."""
+        body: dict[str, Any] = {
+            "player_name": player_name,
+            "reason": reason,
+        }
+        if server_name:
+            body["server_name"] = server_name
+        if action == "ban":
+            body["days"] = days
+        payload = await self._async_request(
+            "POST", f"/{action}", json_data=body, moderation=True
+        )
+        if not isinstance(payload, Mapping):
+            raise DCSServerBotResponseError("Moderation endpoint returned invalid data")
+        return dict(payload)
 
     async def async_get_servers(self) -> list[dict[str, Any]]:
         """Return all servers while dropping secrets from the response."""
@@ -132,17 +169,23 @@ class DCSServerBotClient:
         path: str,
         *,
         params: Mapping[str, str] | None = None,
+        json_data: Mapping[str, Any] | None = None,
+        moderation: bool = False,
     ) -> Any:
         headers = {"Accept": "application/json"}
         if self._api_key:
             headers["X-API-Key"] = self._api_key
 
+        base_url = self._moderation_url if moderation else self._base_url
+        if not base_url:
+            raise DCSServerBotConnectionError("Moderation bridge is not configured")
         try:
             async with self._session.request(
                 method,
-                f"{self._base_url}{path}",
+                f"{base_url}{path}",
                 headers=headers,
                 params=params,
+                json=json_data,
                 ssl=self._verify_ssl,
                 timeout=self._timeout,
             ) as response:
@@ -157,7 +200,7 @@ class DCSServerBotClient:
             raise
         except (TimeoutError, ClientError, OSError) as err:
             raise DCSServerBotConnectionError(
-                f"Cannot connect to DCSServerBot at {self._base_url}"
+                f"Cannot connect to DCSServerBot at {base_url}"
             ) from err
 
     @staticmethod

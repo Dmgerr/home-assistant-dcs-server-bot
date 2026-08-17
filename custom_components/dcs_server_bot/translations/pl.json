@@ -33,9 +33,11 @@
     "step": {
       "init": {
         "title": "Opcje Operations Center",
-        "description": "Sterowanie może uruchamiać, zatrzymywać i restartować prawdziwe serwery DCS. Dla samego monitoringu pozostaw je wyłączone.",
+        "description": "Sterowanie może uruchamiać, zatrzymywać i restartować serwery DCS. Moderacja wymaga opcjonalnego mostu towarzyszącego.",
         "data": {
           "enable_control": "Włącz sterowanie serwerami",
+          "enable_moderation": "Włącz moderację graczy",
+          "moderation_url": "Adres mostu moderacyjnego",
           "scan_interval": "Interwał odpytywania (sekundy)"
         }
       }
@@ -44,6 +46,7 @@
   "entity": {
     "binary_sensor": {
       "api_connected": {"name": "Połączenie z API"},
+      "moderation_connected": {"name": "Połączenie z mostem moderacji"},
       "running": {"name": "Uruchomiony"},
       "paused": {"name": "Misja wstrzymana"}
     },
@@ -76,15 +79,27 @@
       "restart": {"name": "Restartuj serwer"},
       "pause_mission": {"name": "Wstrzymaj misję"},
       "resume_mission": {"name": "Wznów misję"},
-      "restart_mission": {"name": "Restartuj misję"}
+      "restart_mission": {"name": "Restartuj misję"},
+      "kick": {"name": "Wyrzuć wybranego gracza"},
+      "ban_1_day": {"name": "Zablokuj gracza na 1 dzień"},
+      "ban_7_days": {"name": "Zablokuj gracza na 7 dni"},
+      "ban_permanent": {"name": "Zablokuj gracza bezterminowo"}
     },
-    "select": {"mission_select": {"name": "Wczytaj misję"}}
+    "select": {
+      "mission_select": {"name": "Wczytaj misję"},
+      "player_select": {"name": "Gracz do moderacji"}
+    }
   },
   "exceptions": {
     "server_not_found": {"message": "Nie znaleziono serwera {server_name}."},
     "control_disabled": {"message": "Sterowanie jest wyłączone w opcjach integracji."},
     "mission_required": {"message": "Nazwa misji jest wymagana."},
     "control_failed": {"message": "Sterowanie DCSServerBot nie powiodło się: {error}"},
-    "unknown_mission": {"message": "Misja {mission_name} nie jest dostępna."}
+    "unknown_mission": {"message": "Misja {mission_name} nie jest dostępna."},
+    "unknown_player": {"message": "Gracz {player_name} nie jest aktywny."},
+    "player_required": {"message": "Najpierw wybierz aktywnego gracza."},
+    "server_required": {"message": "Nazwa serwera jest wymagana do wyrzucenia gracza."},
+    "moderation_disabled": {"message": "Moderacja graczy jest wyłączona w opcjach integracji."},
+    "moderation_failed": {"message": "Moderacja gracza nie powiodła się: {error}"}
   }
 }

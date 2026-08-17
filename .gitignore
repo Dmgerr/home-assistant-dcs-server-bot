@@ -2,6 +2,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .venv/
+bridge/bridge.config.json
+bridge/moderation-audit.log
 *.py[cod]
 coverage.xml
-

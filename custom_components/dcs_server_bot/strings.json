@@ -35,9 +35,11 @@
     "step": {
       "init": {
         "title": "Operations Center options",
-        "description": "Control actions can start, stop or restart real DCS servers. Leave them disabled for monitoring-only installations.",
+        "description": "Control actions can start, stop or restart real DCS servers. Moderation requires the optional companion bridge.",
         "data": {
           "enable_control": "Enable server control actions",
+          "enable_moderation": "Enable player moderation",
+          "moderation_url": "Moderation bridge URL",
           "scan_interval": "Polling interval (seconds)"
         }
       }
@@ -46,6 +48,7 @@
   "entity": {
     "binary_sensor": {
       "api_connected": {"name": "API connected"},
+      "moderation_connected": {"name": "Moderation bridge connected"},
       "running": {"name": "Running"},
       "paused": {"name": "Mission paused"}
     },
@@ -78,10 +81,15 @@
       "restart": {"name": "Restart server"},
       "pause_mission": {"name": "Pause mission"},
       "resume_mission": {"name": "Resume mission"},
-      "restart_mission": {"name": "Restart mission"}
+      "restart_mission": {"name": "Restart mission"},
+      "kick": {"name": "Kick selected player"},
+      "ban_1_day": {"name": "Ban selected player for 1 day"},
+      "ban_7_days": {"name": "Ban selected player for 7 days"},
+      "ban_permanent": {"name": "Ban selected player permanently"}
     },
     "select": {
-      "mission_select": {"name": "Load mission"}
+      "mission_select": {"name": "Load mission"},
+      "player_select": {"name": "Player to moderate"}
     }
   },
   "exceptions": {
@@ -89,6 +97,11 @@
     "control_disabled": {"message": "Control actions are disabled in integration options."},
     "mission_required": {"message": "A mission name is required."},
     "control_failed": {"message": "DCSServerBot control failed: {error}"},
-    "unknown_mission": {"message": "Mission {mission_name} is not available."}
+    "unknown_mission": {"message": "Mission {mission_name} is not available."},
+    "unknown_player": {"message": "Player {player_name} is not active."},
+    "player_required": {"message": "Select an active player first."},
+    "server_required": {"message": "A server name is required for kick."},
+    "moderation_disabled": {"message": "Player moderation is disabled in integration options."},
+    "moderation_failed": {"message": "Player moderation failed: {error}"}
   }
 }

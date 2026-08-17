@@ -22,6 +22,8 @@ async def async_setup_entry(
 ) -> None:
     coordinator: DCSServerBotCoordinator = hass.data[DOMAIN][entry.entry_id]
     entities: list[BinarySensorEntity] = [DCSAPIConnectedSensor(coordinator)]
+    if coordinator.enable_moderation:
+        entities.append(DCSModerationConnectedSensor(coordinator))
     for server_name in coordinator.data.get("servers", {}):
         entities.extend(
             [
@@ -42,6 +44,18 @@ class DCSAPIConnectedSensor(DCSServerBotEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool:
         return self.coordinator.last_update_success
+
+
+class DCSModerationConnectedSensor(DCSServerBotEntity, BinarySensorEntity):
+    _attr_translation_key = "moderation_connected"
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+
+    def __init__(self, coordinator: DCSServerBotCoordinator) -> None:
+        super().__init__(coordinator, "moderation_connected")
+
+    @property
+    def is_on(self) -> bool:
+        return bool(self.coordinator.data.get("moderation_available"))
 
 
 class DCSServerRunningSensor(DCSServerEntity, BinarySensorEntity):
@@ -66,4 +80,3 @@ class DCSServerPausedSensor(DCSServerEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool:
         return str(self.server.get("status", "")).lower() == "paused"
-

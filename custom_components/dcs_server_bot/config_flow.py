@@ -21,10 +21,14 @@ from .api import (
 from .const import (
     CONF_API_KEY,
     CONF_ENABLE_CONTROL,
+    CONF_ENABLE_MODERATION,
+    CONF_MODERATION_URL,
     CONF_SCAN_INTERVAL,
     CONF_URL,
     CONF_VERIFY_SSL,
     DEFAULT_ENABLE_CONTROL,
+    DEFAULT_ENABLE_MODERATION,
+    DEFAULT_MODERATION_URL,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_URL,
     DEFAULT_VERIFY_SSL,
@@ -152,8 +156,41 @@ class DCSServerBotOptionsFlow(config_entries.OptionsFlowWithReload):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            user_input[CONF_MODERATION_URL] = _normalise_url(
+                user_input.get(CONF_MODERATION_URL, "")
+            )
+            if user_input.get(CONF_ENABLE_MODERATION):
+                parsed = urlparse(user_input[CONF_MODERATION_URL])
+                if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                    errors[CONF_MODERATION_URL] = "invalid_url"
+                else:
+                    entry = self.config_entry
+                    session = async_get_clientsession(
+                        self.hass,
+                        verify_ssl=entry.data.get(
+                            CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL
+                        ),
+                    )
+                    client = DCSServerBotClient(
+                        session,
+                        entry.data[CONF_URL],
+                        entry.data.get(CONF_API_KEY, ""),
+                        verify_ssl=entry.data.get(
+                            CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL
+                        ),
+                        moderation_url=user_input[CONF_MODERATION_URL],
+                    )
+                    try:
+                        if not await client.async_check_moderation():
+                            errors[CONF_MODERATION_URL] = "invalid_response"
+                    except DCSServerBotAuthenticationError:
+                        errors[CONF_MODERATION_URL] = "invalid_auth"
+                    except DCSServerBotError:
+                        errors[CONF_MODERATION_URL] = "cannot_connect"
+            if not errors:
+                return self.async_create_entry(title="", data=user_input)
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
@@ -165,8 +202,20 @@ class DCSServerBotOptionsFlow(config_entries.OptionsFlowWithReload):
                         ),
                     ): bool,
                     vol.Required(
+                        CONF_ENABLE_MODERATION,
+                        default=(user_input or self.config_entry.options).get(
+                            CONF_ENABLE_MODERATION, DEFAULT_ENABLE_MODERATION
+                        ),
+                    ): bool,
+                    vol.Required(
+                        CONF_MODERATION_URL,
+                        default=(user_input or self.config_entry.options).get(
+                            CONF_MODERATION_URL, DEFAULT_MODERATION_URL
+                        ),
+                    ): str,
+                    vol.Required(
                         CONF_SCAN_INTERVAL,
-                        default=self.config_entry.options.get(
+                        default=(user_input or self.config_entry.options).get(
                             CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
                         ),
                     ): vol.All(
@@ -175,4 +224,5 @@ class DCSServerBotOptionsFlow(config_entries.OptionsFlowWithReload):
                     ),
                 }
             ),
+            errors=errors,
         )
