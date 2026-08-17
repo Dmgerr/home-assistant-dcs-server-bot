@@ -6,6 +6,7 @@ from datetime import timedelta
 
 DOMAIN = "dcs_server_bot"
 NAME = "DCS Server Bot Operations Center"
+CONFIGURATION_URL = f"homeassistant://config/integrations/integration/{DOMAIN}"
 
 CONF_URL = "url"
 CONF_API_KEY = "api_key"
@@ -25,6 +26,7 @@ MIN_SCAN_INTERVAL = 10
 MAX_SCAN_INTERVAL = 300
 
 DEFAULT_TIMEOUT = 15
+CONTROL_TIMEOUT = 600
 UPDATE_INTERVAL = timedelta(seconds=DEFAULT_SCAN_INTERVAL)
 STATISTICS_INTERVAL = timedelta(minutes=15)
 
