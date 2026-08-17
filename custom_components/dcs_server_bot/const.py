@@ -11,11 +11,15 @@ CONF_URL = "url"
 CONF_API_KEY = "api_key"
 CONF_VERIFY_SSL = "verify_ssl"
 CONF_ENABLE_CONTROL = "enable_control"
+CONF_ENABLE_MODERATION = "enable_moderation"
+CONF_MODERATION_URL = "moderation_url"
 CONF_SCAN_INTERVAL = "scan_interval"
 
 DEFAULT_URL = "http://localhost:9876"
 DEFAULT_VERIFY_SSL = True
 DEFAULT_ENABLE_CONTROL = False
+DEFAULT_ENABLE_MODERATION = False
+DEFAULT_MODERATION_URL = ""
 DEFAULT_SCAN_INTERVAL = 30
 MIN_SCAN_INTERVAL = 10
 MAX_SCAN_INTERVAL = 300
@@ -35,10 +39,16 @@ SERVICE_PAUSE_MISSION = "pause_mission"
 SERVICE_RESUME_MISSION = "resume_mission"
 SERVICE_RESTART_MISSION = "restart_mission"
 SERVICE_LOAD_MISSION = "load_mission"
+SERVICE_KICK_PLAYER = "kick_player"
+SERVICE_BAN_PLAYER = "ban_player"
+SERVICE_UNBAN_PLAYER = "unban_player"
 
 ATTR_SERVER_NAME = "server_name"
 ATTR_MISSION_NAME = "mission_name"
 ATTR_ENTRY_ID = "entry_id"
+ATTR_PLAYER_NAME = "player_name"
+ATTR_REASON = "reason"
+ATTR_DAYS = "days"
 
 CONTROL_ENDPOINTS: dict[str, str] = {
     SERVICE_START_SERVER: "/instance/start",

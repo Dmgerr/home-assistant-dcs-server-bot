@@ -1,0 +1,7 @@
+{
+  "bind": "192.168.1.47",
+  "port": 9877,
+  "allowed_ips": ["127.0.0.1", "::1", "192.168.1.47", "192.168.1.38"],
+  "python_path": "C:\\Users\\dcsbot\\.dcssb\\Scripts\\python.exe",
+  "audit_log": "C:\\ProgramData\\DCS-HA-Bridge\\moderation-audit.log"
+}

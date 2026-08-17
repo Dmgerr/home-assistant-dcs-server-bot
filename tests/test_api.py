@@ -98,3 +98,48 @@ async def test_invalid_servers_payload():
 
     with pytest.raises(DCSServerBotResponseError):
         await client.async_get_servers()
+
+
+@pytest.mark.asyncio
+async def test_moderation_health_uses_companion_url():
+    session = FakeSession(
+        FakeResponse(200, {"status": "ok", "service": "dcs-ha-moderation-bridge"})
+    )
+    client = DCSServerBotClient(
+        session,
+        "http://127.0.0.1:9876",
+        "secret",
+        moderation_url="http://127.0.0.1:9877/",
+    )
+
+    assert await client.async_check_moderation() is True
+    assert session.request_data[1] == "http://127.0.0.1:9877/health"
+
+
+@pytest.mark.asyncio
+async def test_ban_payload_is_sent_to_companion_bridge():
+    session = FakeSession(FakeResponse(200, {"status": "ok", "action": "ban"}))
+    client = DCSServerBotClient(
+        session,
+        "http://127.0.0.1:9876",
+        "secret",
+        moderation_url="http://127.0.0.1:9877",
+    )
+
+    await client.async_moderate(
+        "ban",
+        "Pilot",
+        server_name="Training",
+        reason="Test",
+        days=7,
+    )
+
+    method, url, kwargs = session.request_data
+    assert method == "POST"
+    assert url == "http://127.0.0.1:9877/ban"
+    assert kwargs["json"] == {
+        "player_name": "Pilot",
+        "reason": "Test",
+        "server_name": "Training",
+        "days": 7,
+    }

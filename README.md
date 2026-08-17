@@ -17,12 +17,13 @@ actions suitable for a dedicated Operations Center dashboard.
 - Active player details and loaded DCSServerBot extensions
 - Events for server-state changes and players joining/leaving
 - Optional start, stop, restart, mission pause/resume/restart and mission selection
+- Optional player selector, kick and persistent ban/unban through a separate bridge
 - Redacted diagnostics — API keys, server passwords and addresses are not exported
 - Polish, English, German, French and Spanish setup translations
 
-Control is **disabled by default**. Monitoring never calls a state-changing
-endpoint. Server controls have to be enabled explicitly in the integration's
-options.
+Control and moderation are **disabled by default**. Monitoring never calls a
+state-changing endpoint. Each capability has to be enabled explicitly in the
+integration's options.
 
 ## Requirements
 
@@ -82,6 +83,11 @@ temperature, wind, extensions, address and scheduled restart.
 When control is enabled, the server device also receives buttons and a mission
 selector. Dashboard buttons should always use a confirmation dialog.
 
+When moderation is enabled, each server also receives an active-player selector
+and kick/ban buttons. Because the upstream RestAPI has no moderation endpoints,
+this requires the optional, separately secured
+[`bridge`](bridge/README.md). It does not modify DCSServerBot.
+
 ## Events
 
 - `dcs_server_bot_server_status_changed`
@@ -100,10 +106,16 @@ Each event contains `server_name`; status events include `old_status` and
 - `dcs_server_bot.resume_mission`
 - `dcs_server_bot.restart_mission`
 - `dcs_server_bot.load_mission`
+- `dcs_server_bot.kick_player`
+- `dcs_server_bot.ban_player`
+- `dcs_server_bot.unban_player`
 
 Actions accept `server_name`; `load_mission` also requires `mission_name`.
 `entry_id` is optional and is useful when several bots contain identically
 named servers.
+
+Moderation actions accept `player_name` and an optional `reason`. Kick also
+requires `server_name`; ban accepts `days` from 0 to 3650, where 0 is permanent.
 
 ## Dashboard
 
@@ -118,6 +130,8 @@ setup before importing the example.
 - **401/403:** update the API key with the integration reauthentication flow.
 - **No control entities:** enable controls under Settings → Devices & services →
   DCS Server Bot Operations Center → Configure.
+- **No moderation entities:** start and secure the companion bridge, then enable
+  moderation and provide its URL in the integration options.
 - **Some servers are missing:** check the RestAPI `servers` endpoint filters.
 - Download diagnostics from the integration menu before opening an issue.
 
@@ -131,4 +145,3 @@ that field immediately after receiving a response.
 ## License
 
 MIT
-

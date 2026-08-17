@@ -53,4 +53,42 @@ load_mission:
       selector:
         text:
     entry_id: *entry_id
-
+kick_player:
+  name: Kick player
+  description: Kick an active player from the selected DCS server through the companion moderation bridge.
+  fields:
+    server_name: *server_name
+    player_name: &player_name
+      name: Player
+      required: true
+      selector:
+        text:
+    reason: &reason
+      name: Reason
+      required: false
+      selector:
+        text:
+    entry_id: *entry_id
+ban_player:
+  name: Ban player
+  description: Persistently ban a known DCS player. Set days to 0 for a permanent ban.
+  fields:
+    player_name: *player_name
+    reason: *reason
+    days:
+      name: Days
+      required: false
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 3650
+          mode: box
+    entry_id: *entry_id
+unban_player:
+  name: Unban player
+  description: Remove an active persistent ban for a known DCS player.
+  fields:
+    player_name: *player_name
+    reason: *reason
+    entry_id: *entry_id

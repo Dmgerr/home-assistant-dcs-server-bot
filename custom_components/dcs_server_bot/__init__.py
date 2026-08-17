@@ -15,16 +15,23 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import DCSServerBotClient, DCSServerBotError
 from .const import (
+    ATTR_DAYS,
     ATTR_ENTRY_ID,
     ATTR_MISSION_NAME,
+    ATTR_PLAYER_NAME,
+    ATTR_REASON,
     ATTR_SERVER_NAME,
     CONF_API_KEY,
+    CONF_MODERATION_URL,
     CONF_URL,
     CONF_VERIFY_SSL,
     CONTROL_ENDPOINTS,
     DEFAULT_VERIFY_SSL,
     DOMAIN,
+    SERVICE_BAN_PLAYER,
+    SERVICE_KICK_PLAYER,
     SERVICE_LOAD_MISSION,
+    SERVICE_UNBAN_PLAYER,
 )
 from .coordinator import DCSServerBotCoordinator
 
@@ -42,6 +49,18 @@ SERVICE_SCHEMA = vol.Schema(
         vol.Required(ATTR_SERVER_NAME): cv.string,
         vol.Optional(ATTR_ENTRY_ID): cv.string,
         vol.Optional(ATTR_MISSION_NAME): cv.string,
+    }
+)
+
+MODERATION_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_PLAYER_NAME): cv.string,
+        vol.Optional(ATTR_SERVER_NAME): cv.string,
+        vol.Optional(ATTR_REASON, default="Moderation by Home Assistant"): cv.string,
+        vol.Optional(ATTR_DAYS, default=0): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=3650)
+        ),
+        vol.Optional(ATTR_ENTRY_ID): cv.string,
     }
 )
 
@@ -111,6 +130,62 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                 schema=SERVICE_SCHEMA,
                 supports_response=SupportsResponse.OPTIONAL,
             )
+
+    async def async_handle_moderation(call: ServiceCall) -> dict[str, Any]:
+        entry_id = call.data.get(ATTR_ENTRY_ID)
+        coordinators: list[DCSServerBotCoordinator] = list(
+            hass.data.get(DOMAIN, {}).values()
+        )
+        if entry_id:
+            coordinators = [
+                item for item in coordinators if item.entry.entry_id == entry_id
+            ]
+        coordinator = next(
+            (item for item in coordinators if item.enable_moderation), None
+        )
+        if coordinator is None:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="moderation_disabled",
+            )
+        server_name = call.data.get(ATTR_SERVER_NAME)
+        if call.service == SERVICE_KICK_PLAYER and not server_name:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="server_required",
+            )
+        if server_name and server_name not in coordinator.data.get("servers", {}):
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="server_not_found",
+                translation_placeholders={"server_name": server_name},
+            )
+        try:
+            result = await coordinator.client.async_moderate(
+                call.service.removesuffix("_player"),
+                call.data[ATTR_PLAYER_NAME],
+                server_name=server_name,
+                reason=call.data[ATTR_REASON],
+                days=call.data[ATTR_DAYS],
+            )
+        except DCSServerBotError as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="moderation_failed",
+                translation_placeholders={"error": str(err)},
+            ) from err
+        await coordinator.async_request_refresh()
+        return result
+
+    for service in (SERVICE_KICK_PLAYER, SERVICE_BAN_PLAYER, SERVICE_UNBAN_PLAYER):
+        if not hass.services.has_service(DOMAIN, service):
+            hass.services.async_register(
+                DOMAIN,
+                service,
+                async_handle_moderation,
+                schema=MODERATION_SCHEMA,
+                supports_response=SupportsResponse.OPTIONAL,
+            )
     return True
 
 
@@ -125,6 +200,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry.data[CONF_URL],
         entry.data.get(CONF_API_KEY, ""),
         verify_ssl=entry.data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
+        moderation_url=entry.options.get(CONF_MODERATION_URL) or None,
     )
     coordinator = DCSServerBotCoordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()
