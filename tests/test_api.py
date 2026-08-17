@@ -15,15 +15,14 @@ import pytest
 PACKAGE_NAME = "custom_components.dcs_server_bot"
 if PACKAGE_NAME not in sys.modules:
     package = types.ModuleType(PACKAGE_NAME)
-    package.__path__ = [
-        str(Path(__file__).parents[1] / "custom_components" / "dcs_server_bot")
-    ]
+    package.__path__ = [str(Path(__file__).parents[1] / "custom_components" / "dcs_server_bot")]
     sys.modules[PACKAGE_NAME] = package
 
 api = importlib.import_module(f"{PACKAGE_NAME}.api")
 DCSServerBotAuthenticationError = api.DCSServerBotAuthenticationError
 DCSServerBotClient = api.DCSServerBotClient
 DCSServerBotResponseError = api.DCSServerBotResponseError
+
 
 class FakeResponse:
     def __init__(self, status: int, payload):
@@ -41,13 +40,15 @@ class FakeResponse:
 
 
 class FakeSession:
-    def __init__(self, response: FakeResponse):
-        self.response = response
+    def __init__(self, response: FakeResponse | list[FakeResponse]):
+        self.responses = response if isinstance(response, list) else [response]
         self.request_data = None
+        self.requests = []
 
     def request(self, method, url, **kwargs):
         self.request_data = (method, url, kwargs)
-        return self.response
+        self.requests.append(self.request_data)
+        return self.responses.pop(0)
 
 
 @pytest.mark.asyncio
@@ -143,3 +144,42 @@ async def test_ban_payload_is_sent_to_companion_bridge():
         "server_name": "Training",
         "days": 7,
     }
+
+
+@pytest.mark.asyncio
+async def test_mission_restart_timeout_falls_back_to_server_restart():
+    session = FakeSession(
+        [
+            FakeResponse(504, {"detail": "Timeout while restarting mission."}),
+            FakeResponse(200, {"status": "success"}),
+        ]
+    )
+    client = DCSServerBotClient(
+        session,
+        "http://127.0.0.1:9876",
+        "secret",
+    )
+
+    result = await client.async_control("/instance/mission/restart", "Training")
+
+    assert result["fallback"] == "server_restart"
+    assert [request[1] for request in session.requests] == [
+        "http://127.0.0.1:9876/instance/mission/restart",
+        "http://127.0.0.1:9876/instance/restart",
+    ]
+    assert all(request[2]["timeout"].total == 600 for request in session.requests)
+
+
+@pytest.mark.asyncio
+async def test_other_mission_restart_errors_are_not_hidden():
+    session = FakeSession(FakeResponse(409, {"detail": "Server is stopped."}))
+    client = DCSServerBotClient(
+        session,
+        "http://127.0.0.1:9876",
+        "secret",
+    )
+
+    with pytest.raises(DCSServerBotResponseError, match="Server is stopped"):
+        await client.async_control("/instance/mission/restart", "Training")
+
+    assert len(session.requests) == 1
