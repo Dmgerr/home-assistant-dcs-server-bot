@@ -15,7 +15,11 @@ actions suitable for a dedicated Operations Center dashboard.
 - API connectivity, server state and aggregate server/player counters
 - Current mission, theatre, mission time, scheduled restart and weather
 - Active player details and loaded DCSServerBot extensions
-- Events for server-state changes and players joining/leaving
+- Live airbase list and a selectable warehouse inventory
+- Kill, K/D and category leaderboards
+- DCS FPS, CPU, memory and ping telemetry with debounced health alerts
+- Mission AAR summaries and the last 20 mission records
+- Events for mission completion, health alerts, server-state changes and players joining/leaving
 - Optional start, stop, restart, mission pause/resume/restart and mission selection
 - Optional player selector, kick and persistent ban/unban through a separate bridge
 - Redacted diagnostics — API keys, server passwords and addresses are not exported
@@ -105,19 +109,25 @@ If DCSServerBot times out while replacing the current mission during a mission
 restart, the integration retries through the bot's server restart endpoint. This
 stop/start fallback reloads the same mission without modifying DCSServerBot.
 
-When moderation is enabled, each server also receives an active-player selector
-and kick/ban buttons. Because the upstream RestAPI has no moderation endpoints,
-this requires the optional, separately secured
-[`bridge`](bridge/README.md). It does not modify DCSServerBot.
+When moderation is enabled, each server also receives an active-player selector,
+kick/ban buttons, performance telemetry, mission history and VIP metadata. Because
+the upstream RestAPI has no moderation or historical telemetry endpoints, this
+requires the optional, separately secured [`bridge`](bridge/README.md). The bridge
+reads the existing DCSServerBot database and does not modify the bot.
 
 ## Events
 
 - `dcs_server_bot_server_status_changed`
 - `dcs_server_bot_player_joined`
 - `dcs_server_bot_player_left`
+- `dcs_server_bot_important_player_joined`
+- `dcs_server_bot_mission_ended`
+- `dcs_server_bot_performance_alert`
 
 Each event contains `server_name`; status events include `old_status` and
-`new_status`, while player events include `player`.
+`new_status`, while player events include `player`. Mission completion includes
+the AAR `summary`. Performance events include `alert_type` (`low_fps` or
+`mission_stalled`) and the latest FPS, CPU and memory values.
 
 ## Actions
 
@@ -145,6 +155,11 @@ The repository contains a native, responsive dashboard example in
 [`dashboards/operations-center.yaml`](dashboards/operations-center.yaml).
 Entity IDs depend on the names assigned by Home Assistant, so review them after
 setup before importing the example.
+
+The full dashboard is organised into six views: live mission, pilots, airbases
+and warehouses, statistics and rankings, server performance, and AAR/history.
+Home Assistant automations can use the events above for end-of-mission reports,
+health alerts and important-player notifications; no voice assistant is needed.
 
 ## Troubleshooting
 

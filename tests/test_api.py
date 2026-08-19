@@ -183,3 +183,54 @@ async def test_other_mission_restart_errors_are_not_hidden():
         await client.async_control("/instance/mission/restart", "Training")
 
     assert len(session.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_rankings_and_airbases_are_parsed():
+    session = FakeSession(
+        [
+            FakeResponse(200, [{"nick": "Ace", "kills": 42}]),
+            FakeResponse(200, {"airbases": [{"name": "Kutaisi"}]}),
+            FakeResponse(
+                200,
+                {
+                    "warehouse": {"aircraft": {"F-16C_50": 4}},
+                    "unlimited": {"aircraft": False},
+                },
+            ),
+        ]
+    )
+    client = DCSServerBotClient(session, "http://127.0.0.1:9876", "secret")
+
+    assert (await client.async_get_top_kills())[0]["nick"] == "Ace"
+    assert (await client.async_get_airbases("Training"))[0]["name"] == "Kutaisi"
+    warehouse = await client.async_get_airbase_warehouse("Training", "Kutaisi")
+    assert warehouse["warehouse"]["aircraft"]["F-16C_50"] == 4
+    assert session.requests[1][2]["params"] == {"server_name": "Training"}
+    assert session.requests[2][2]["timeout"].total == 75
+
+
+@pytest.mark.asyncio
+async def test_operations_snapshot_uses_companion_bridge():
+    session = FakeSession(
+        FakeResponse(
+            200,
+            {
+                "status": "ok",
+                "performance": {"Training": {"fps": 60}},
+                "missions": [],
+                "vip_players": ["Ace"],
+            },
+        )
+    )
+    client = DCSServerBotClient(
+        session,
+        "http://127.0.0.1:9876",
+        "secret",
+        moderation_url="http://127.0.0.1:9877",
+    )
+
+    snapshot = await client.async_get_operations_snapshot()
+
+    assert snapshot["performance"]["Training"]["fps"] == 60
+    assert session.request_data[1] == "http://127.0.0.1:9877/operations/snapshot"

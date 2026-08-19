@@ -29,10 +29,18 @@ DEFAULT_TIMEOUT = 15
 CONTROL_TIMEOUT = 600
 UPDATE_INTERVAL = timedelta(seconds=DEFAULT_SCAN_INTERVAL)
 STATISTICS_INTERVAL = timedelta(minutes=15)
+EXTENDED_DATA_INTERVAL = timedelta(minutes=5)
+LOW_FPS_THRESHOLD = 30.0
+LOW_FPS_DURATION = timedelta(minutes=3)
+MISSION_STALL_DURATION = timedelta(minutes=3)
+TELEMETRY_STALE_AFTER = timedelta(minutes=3)
 
 EVENT_SERVER_STATUS_CHANGED = f"{DOMAIN}_server_status_changed"
 EVENT_PLAYER_JOINED = f"{DOMAIN}_player_joined"
 EVENT_PLAYER_LEFT = f"{DOMAIN}_player_left"
+EVENT_IMPORTANT_PLAYER_JOINED = f"{DOMAIN}_important_player_joined"
+EVENT_MISSION_ENDED = f"{DOMAIN}_mission_ended"
+EVENT_PERFORMANCE_ALERT = f"{DOMAIN}_performance_alert"
 
 SERVICE_START_SERVER = "start_server"
 SERVICE_STOP_SERVER = "stop_server"

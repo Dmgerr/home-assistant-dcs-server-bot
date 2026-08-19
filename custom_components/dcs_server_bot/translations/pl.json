@@ -47,8 +47,11 @@
     "binary_sensor": {
       "api_connected": {"name": "Połączenie z API"},
       "moderation_connected": {"name": "Połączenie z mostem moderacji"},
+      "operations_connected": {"name": "Połączenie z telemetrią Operations"},
       "running": {"name": "Uruchomiony"},
-      "paused": {"name": "Misja wstrzymana"}
+      "paused": {"name": "Misja wstrzymana"},
+      "low_fps": {"name": "Niskie FPS"},
+      "mission_stalled": {"name": "Misja zawieszona"}
     },
     "sensor": {
       "server_count": {"name": "Serwery"},
@@ -71,7 +74,18 @@
       "unique_pilots_24h": {"name": "Unikalni piloci (24 h)"},
       "unique_pilots_7d": {"name": "Unikalni piloci (7 dni)"},
       "unique_pilots_30d": {"name": "Unikalni piloci (30 dni)"},
-      "attendance": {"name": "Szczegóły frekwencji"}
+      "attendance": {"name": "Szczegóły frekwencji"},
+      "rankings": {"name": "Rankingi"},
+      "mission_history": {"name": "Historia misji"},
+      "vip_players": {"name": "Ważni gracze"},
+      "fps": {"name": "FPS"},
+      "cpu": {"name": "CPU DCS"},
+      "memory": {"name": "Pamięć DCS"},
+      "ping": {"name": "Ping serwera"},
+      "telemetry_time": {"name": "Ostatnia telemetria"},
+      "airbases": {"name": "Lotniska"},
+      "warehouse": {"name": "Magazyn lotniska"},
+      "last_aar": {"name": "Ostatni raport AAR"}
     },
     "button": {
       "start": {"name": "Uruchom serwer"},
@@ -87,7 +101,8 @@
     },
     "select": {
       "mission_select": {"name": "Wczytaj misję"},
-      "player_select": {"name": "Gracz do moderacji"}
+      "player_select": {"name": "Gracz do moderacji"},
+      "airbase_select": {"name": "Magazyn lotniska"}
     }
   },
   "exceptions": {
@@ -100,6 +115,8 @@
     "player_required": {"message": "Najpierw wybierz aktywnego gracza."},
     "server_required": {"message": "Nazwa serwera jest wymagana do wyrzucenia gracza."},
     "moderation_disabled": {"message": "Moderacja graczy jest wyłączona w opcjach integracji."},
-    "moderation_failed": {"message": "Moderacja gracza nie powiodła się: {error}"}
+    "moderation_failed": {"message": "Moderacja gracza nie powiodła się: {error}"},
+    "unknown_airbase": {"message": "Lotnisko {airbase_name} nie jest dostępne."},
+    "airbase_failed": {"message": "Pobranie magazynu lotniska nie powiodło się: {error}"}
   }
 }

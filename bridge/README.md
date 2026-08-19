@@ -12,6 +12,8 @@ The bridge:
 - records persistent bans in DCSServerBot's existing PostgreSQL `bans` table;
 - maintains an append-only moderation audit log;
 - rejects clients outside its explicit IP allowlist.
+- exposes a read-only cached Operations Center snapshot with DCS performance,
+  VIP-player names and aggregated mission history;
 
 ## Requirements
 
@@ -36,5 +38,10 @@ seven-day ban and permanent-ban buttons. Home Assistant dashboard buttons
 should use confirmation dialogs. The `kick_player`, `ban_player` and
 `unban_player` actions provide custom reasons and ban durations for advanced
 automations.
+
+`GET /operations/snapshot` uses the same API key and allowlist as moderation.
+It is read-only and powers FPS/CPU/RAM/ping sensors, mission-stall detection,
+VIP join events and AAR history. Results are cached for 15 seconds to avoid
+unnecessary database load.
 
 Never expose the RestAPI or the moderation bridge to the internet.

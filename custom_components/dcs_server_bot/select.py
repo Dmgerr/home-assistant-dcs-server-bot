@@ -24,10 +24,16 @@ async def async_setup_entry(
     if coordinator.enable_control:
         entities.extend(
             [
-            DCSServerMissionSelect(coordinator, server_name)
-            for server_name in coordinator.data.get("servers", {})
+                DCSServerMissionSelect(coordinator, server_name)
+                for server_name in coordinator.data.get("servers", {})
             ]
         )
+    entities.extend(
+        [
+            DCSServerAirbaseSelect(coordinator, server_name)
+            for server_name in coordinator.data.get("servers", {})
+        ]
+    )
     if coordinator.enable_moderation:
         entities.extend(
             [
@@ -50,9 +56,7 @@ class DCSServerMissionSelect(DCSServerEntity, SelectEntity):
         return sorted(
             {
                 str(item.get("name"))
-                for item in self.coordinator.data.get("missions", {}).get(
-                    self.server_name, []
-                )
+                for item in self.coordinator.data.get("missions", {}).get(self.server_name, [])
                 if item.get("name")
             }
         )
@@ -125,3 +129,48 @@ class DCSServerPlayerSelect(DCSServerEntity, SelectEntity):
             )
         self.coordinator.selected_players[self.server_name] = option
         self.async_write_ha_state()
+
+
+class DCSServerAirbaseSelect(DCSServerEntity, SelectEntity):
+    """Select the airbase whose warehouse is displayed."""
+
+    _attr_translation_key = "airbase_select"
+    _attr_icon = "mdi:airport"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator, server_name: str) -> None:
+        super().__init__(coordinator, server_name, "airbase_select")
+
+    @property
+    def available(self) -> bool:
+        return super().available and bool(self.options)
+
+    @property
+    def options(self) -> list[str]:
+        return sorted(
+            {
+                str(item.get("name"))
+                for item in self.coordinator.data.get("airbases", {}).get(self.server_name, [])
+                if item.get("name")
+            }
+        )
+
+    @property
+    def current_option(self) -> str | None:
+        value = self.coordinator.selected_airbases.get(self.server_name)
+        return value if value in self.options else None
+
+    async def async_select_option(self, option: str) -> None:
+        if option not in self.options:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="unknown_airbase",
+                translation_placeholders={"airbase_name": option},
+            )
+        try:
+            await self.coordinator.async_select_airbase(self.server_name, option)
+        except DCSServerBotError as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="airbase_failed",
+                translation_placeholders={"error": str(err)},
+            ) from err

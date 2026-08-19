@@ -11,7 +11,13 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfSpeed, UnitOfTemperature, UnitOfTime
+from homeassistant.const import (
+    PERCENTAGE,
+    UnitOfFrequency,
+    UnitOfSpeed,
+    UnitOfTemperature,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -37,6 +43,9 @@ async def async_setup_entry(
         DCSTotalKillsSensor(coordinator),
         DCSTotalDeathsSensor(coordinator),
         DCSTotalPlaytimeSensor(coordinator),
+        DCSRankingsSensor(coordinator),
+        DCSMissionHistorySensor(coordinator),
+        DCSVIPPlayersSensor(coordinator),
     ]
     for server_name in coordinator.data.get("servers", {}):
         entities.extend(
@@ -54,6 +63,14 @@ async def async_setup_entry(
                 DCSServerUniquePilots7dSensor(coordinator, server_name),
                 DCSServerUniquePilots30dSensor(coordinator, server_name),
                 DCSServerAttendanceSensor(coordinator, server_name),
+                DCSServerFPSSensor(coordinator, server_name),
+                DCSServerCPUSensor(coordinator, server_name),
+                DCSServerMemorySensor(coordinator, server_name),
+                DCSServerPingSensor(coordinator, server_name),
+                DCSServerTelemetryTimeSensor(coordinator, server_name),
+                DCSServerAirbasesSensor(coordinator, server_name),
+                DCSServerWarehouseSensor(coordinator, server_name),
+                DCSServerLastAARSensor(coordinator, server_name),
             ]
         )
     async_add_entities(entities)
@@ -172,9 +189,7 @@ class DCSTotalPlaytimeSensor(DCSGlobalStatisticSensor):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         return {
-            "daily_players": self.coordinator.data.get("statistics", {}).get(
-                "daily_players", []
-            )
+            "daily_players": self.coordinator.data.get("statistics", {}).get("daily_players", [])
         }
 
 
@@ -312,9 +327,7 @@ class DCSServerWindSpeedSensor(DCSServerEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         weather = self.server.get("weather") or {}
         return {
-            key: weather.get(key)
-            for key in weather
-            if key not in {"temperature", "wind_speed"}
+            key: weather.get(key) for key in weather if key not in {"temperature", "wind_speed"}
         }
 
 
@@ -379,9 +392,11 @@ class DCSServerAttendanceMetricSensor(DCSServerEntity, SensorEntity):
 
     @property
     def native_value(self) -> int | float | None:
-        value = self.coordinator.data.get("attendance", {}).get(
-            self.server_name, {}
-        ).get(self._attendance_key)
+        value = (
+            self.coordinator.data.get("attendance", {})
+            .get(self.server_name, {})
+            .get(self._attendance_key)
+        )
         return value if isinstance(value, int | float) else None
 
 
@@ -428,13 +443,240 @@ class DCSServerAttendanceSensor(DCSServerEntity, SensorEntity):
 
     @property
     def native_value(self) -> int | None:
-        value = self.coordinator.data.get("attendance", {}).get(
-            self.server_name, {}
-        ).get("unique_players_7d")
+        value = (
+            self.coordinator.data.get("attendance", {})
+            .get(self.server_name, {})
+            .get("unique_players_7d")
+        )
         return int(value) if value is not None else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return self.coordinator.data.get("attendance", {}).get(
-            self.server_name, {}
+        return self.coordinator.data.get("attendance", {}).get(self.server_name, {})
+
+
+class DCSRankingsSensor(DCSServerBotEntity, SensorEntity):
+    _attr_translation_key = "rankings"
+    _attr_icon = "mdi:trophy"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator) -> None:
+        super().__init__(coordinator, "rankings")
+
+    @property
+    def native_value(self) -> int:
+        return len(self.coordinator.data.get("rankings", {}).get("top_kills", []))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return self.coordinator.data.get("rankings", {})
+
+
+class DCSMissionHistorySensor(DCSServerBotEntity, SensorEntity):
+    _attr_translation_key = "mission_history"
+    _attr_icon = "mdi:history"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator) -> None:
+        super().__init__(coordinator, "mission_history")
+
+    @property
+    def native_value(self) -> int:
+        return len(self.coordinator.data.get("operations", {}).get("missions", []))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {"missions": self.coordinator.data.get("operations", {}).get("missions", [])[:20]}
+
+
+class DCSVIPPlayersSensor(DCSServerBotEntity, SensorEntity):
+    _attr_translation_key = "vip_players"
+    _attr_icon = "mdi:account-star"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator) -> None:
+        super().__init__(coordinator, "vip_players")
+
+    @property
+    def native_value(self) -> int:
+        return len(self.coordinator.data.get("operations", {}).get("vip_players", []))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {"players": self.coordinator.data.get("operations", {}).get("vip_players", [])}
+
+
+class DCSServerPerformanceSensor(DCSServerEntity, SensorEntity):
+    """Base class for one metric from the companion bridge."""
+
+    _performance_key: str
+
+    @property
+    def native_value(self) -> float | int | None:
+        value = (
+            self.coordinator.data.get("operations", {})
+            .get("performance", {})
+            .get(self.server_name, {})
+            .get(self._performance_key)
         )
+        return value if isinstance(value, int | float) else None
+
+
+class DCSServerFPSSensor(DCSServerPerformanceSensor):
+    _attr_translation_key = "fps"
+    _attr_icon = "mdi:speedometer"
+    _attr_native_unit_of_measurement = UnitOfFrequency.HERTZ
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _performance_key = "fps"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator, server_name: str) -> None:
+        super().__init__(coordinator, server_name, "fps")
+
+
+class DCSServerCPUSensor(DCSServerPerformanceSensor):
+    _attr_translation_key = "cpu"
+    _attr_icon = "mdi:cpu-64-bit"
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _performance_key = "cpu"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator, server_name: str) -> None:
+        super().__init__(coordinator, server_name, "cpu")
+
+
+class DCSServerMemorySensor(DCSServerPerformanceSensor):
+    _attr_translation_key = "memory"
+    _attr_icon = "mdi:memory"
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _performance_key = "memory_percent"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator, server_name: str) -> None:
+        super().__init__(coordinator, server_name, "memory")
+
+
+class DCSServerPingSensor(DCSServerPerformanceSensor):
+    _attr_translation_key = "ping"
+    _attr_icon = "mdi:lan-pending"
+    _attr_native_unit_of_measurement = UnitOfTime.MILLISECONDS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _performance_key = "ping"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator, server_name: str) -> None:
+        super().__init__(coordinator, server_name, "ping")
+
+
+class DCSServerTelemetryTimeSensor(DCSServerEntity, SensorEntity):
+    _attr_translation_key = "telemetry_time"
+    _attr_icon = "mdi:database-clock"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: DCSServerBotCoordinator, server_name: str) -> None:
+        super().__init__(coordinator, server_name, "telemetry_time")
+
+    @property
+    def native_value(self) -> datetime | None:
+        raw = (
+            self.coordinator.data.get("operations", {})
+            .get("performance", {})
+            .get(self.server_name, {})
+            .get("time")
+        )
+        if not raw:
+            return None
+        try:
+            value = datetime.fromisoformat(str(raw))
+            return value.replace(tzinfo=UTC) if value.tzinfo is None else value
+        except ValueError:
+            return None
+
+
+class DCSServerAirbasesSensor(DCSServerEntity, SensorEntity):
+    _attr_translation_key = "airbases"
+    _attr_icon = "mdi:airport"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator, server_name: str) -> None:
+        super().__init__(coordinator, server_name, "airbases")
+
+    @property
+    def native_value(self) -> int:
+        return len(self.coordinator.data.get("airbases", {}).get(self.server_name, []))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        airbases = self.coordinator.data.get("airbases", {}).get(self.server_name, [])
+        return {
+            "airbases": [
+                {
+                    "name": item.get("name"),
+                    "code": item.get("code"),
+                    "coalition": item.get("coalition"),
+                    "latitude": item.get("lat"),
+                    "longitude": item.get("lng"),
+                    "runways": item.get("runwayList", []),
+                    "dynamic_spawn": (item.get("dynamic") or {}).get("dynamicSpawnAvailable"),
+                }
+                for item in airbases[:64]
+            ]
+        }
+
+
+class DCSServerWarehouseSensor(DCSServerEntity, SensorEntity):
+    _attr_translation_key = "warehouse"
+    _attr_icon = "mdi:warehouse"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator, server_name: str) -> None:
+        super().__init__(coordinator, server_name, "warehouse")
+
+    @property
+    def native_value(self) -> str | None:
+        return self.coordinator.selected_airbases.get(self.server_name)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        payload = self.coordinator.data.get("warehouses", {}).get(self.server_name, {})
+        warehouse = payload.get("warehouse", {})
+
+        def compact(category: str, limit: int = 40) -> list[dict[str, Any]]:
+            values = warehouse.get(category, {})
+            if not isinstance(values, dict):
+                return []
+            return [
+                {"item": str(key).split(".")[-1], "quantity": value}
+                for key, value in sorted(values.items())[:limit]
+            ]
+
+        return {
+            "airbase": self.coordinator.selected_airbases.get(self.server_name),
+            "unlimited": payload.get("unlimited", {}),
+            "aircraft": compact("aircraft"),
+            "weapons": compact("weapon"),
+            "liquids": compact("liquids", 10),
+            "aircraft_types": len(warehouse.get("aircraft", {})),
+            "weapon_types": len(warehouse.get("weapon", {})),
+        }
+
+
+class DCSServerLastAARSensor(DCSServerEntity, SensorEntity):
+    _attr_translation_key = "last_aar"
+    _attr_icon = "mdi:file-document-check-outline"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator, server_name: str) -> None:
+        super().__init__(coordinator, server_name, "last_aar")
+
+    @property
+    def _record(self) -> dict[str, Any]:
+        return next(
+            (
+                item
+                for item in self.coordinator.data.get("operations", {}).get("missions", [])
+                if item.get("server_name") == self.server_name and item.get("mission_end")
+            ),
+            {},
+        )
+
+    @property
+    def native_value(self) -> str | None:
+        return self._record.get("mission_name")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return self._record

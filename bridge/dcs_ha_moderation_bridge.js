@@ -146,6 +146,16 @@ function databaseCommand(action, payload = {}) {
   });
 }
 
+let operationsCache = { expires: 0, value: null };
+
+async function operationsSnapshot() {
+  const now = Date.now();
+  if (operationsCache.value && operationsCache.expires > now) return operationsCache.value;
+  const value = await databaseCommand("operations_snapshot");
+  operationsCache = { expires: now + 15000, value };
+  return value;
+}
+
 async function handle(request, response) {
   const runtime = readRuntimeConfig();
   const remote = String(request.socket.remoteAddress || "").replace(/^::ffff:/, "");
@@ -154,6 +164,9 @@ async function handle(request, response) {
 
   if (request.method === "GET" && request.url === "/health") {
     return sendJson(response, 200, { status: "ok", service: "dcs-ha-moderation-bridge" });
+  }
+  if (request.method === "GET" && request.url === "/operations/snapshot") {
+    return sendJson(response, 200, await operationsSnapshot());
   }
   if (request.method !== "POST") return sendJson(response, 404, { error: "Not found" });
 
