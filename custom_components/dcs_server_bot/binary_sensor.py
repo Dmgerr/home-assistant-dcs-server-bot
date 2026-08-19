@@ -23,12 +23,19 @@ async def async_setup_entry(
     coordinator: DCSServerBotCoordinator = hass.data[DOMAIN][entry.entry_id]
     entities: list[BinarySensorEntity] = [DCSAPIConnectedSensor(coordinator)]
     if coordinator.enable_moderation:
-        entities.append(DCSModerationConnectedSensor(coordinator))
+        entities.extend(
+            [
+                DCSModerationConnectedSensor(coordinator),
+                DCSOperationsConnectedSensor(coordinator),
+            ]
+        )
     for server_name in coordinator.data.get("servers", {}):
         entities.extend(
             [
                 DCSServerRunningSensor(coordinator, server_name),
                 DCSServerPausedSensor(coordinator, server_name),
+                DCSServerLowFPSSensor(coordinator, server_name),
+                DCSServerMissionStalledSensor(coordinator, server_name),
             ]
         )
     async_add_entities(entities)
@@ -58,6 +65,18 @@ class DCSModerationConnectedSensor(DCSServerBotEntity, BinarySensorEntity):
         return bool(self.coordinator.data.get("moderation_available"))
 
 
+class DCSOperationsConnectedSensor(DCSServerBotEntity, BinarySensorEntity):
+    _attr_translation_key = "operations_connected"
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+
+    def __init__(self, coordinator: DCSServerBotCoordinator) -> None:
+        super().__init__(coordinator, "operations_connected")
+
+    @property
+    def is_on(self) -> bool:
+        return bool(self.coordinator.data.get("operations_available"))
+
+
 class DCSServerRunningSensor(DCSServerEntity, BinarySensorEntity):
     _attr_translation_key = "running"
     _attr_device_class = BinarySensorDeviceClass.RUNNING
@@ -80,3 +99,31 @@ class DCSServerPausedSensor(DCSServerEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool:
         return str(self.server.get("status", "")).lower() == "paused"
+
+
+class DCSServerLowFPSSensor(DCSServerEntity, BinarySensorEntity):
+    _attr_translation_key = "low_fps"
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+
+    def __init__(self, coordinator: DCSServerBotCoordinator, server_name: str) -> None:
+        super().__init__(coordinator, server_name, "low_fps")
+
+    @property
+    def is_on(self) -> bool:
+        return bool(
+            self.coordinator.data.get("alerts", {}).get(self.server_name, {}).get("low_fps")
+        )
+
+
+class DCSServerMissionStalledSensor(DCSServerEntity, BinarySensorEntity):
+    _attr_translation_key = "mission_stalled"
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+
+    def __init__(self, coordinator: DCSServerBotCoordinator, server_name: str) -> None:
+        super().__init__(coordinator, server_name, "mission_stalled")
+
+    @property
+    def is_on(self) -> bool:
+        return bool(
+            self.coordinator.data.get("alerts", {}).get(self.server_name, {}).get("mission_stalled")
+        )
