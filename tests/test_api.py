@@ -217,7 +217,7 @@ async def test_operations_snapshot_uses_companion_bridge():
             200,
             {
                 "status": "ok",
-                "performance": {"Training": {"fps": 60}},
+                "performance": {"Training": {"fps": 60, "memory_gib": 9.3}},
                 "missions": [],
                 "vip_players": ["Ace"],
             },
@@ -233,4 +233,5 @@ async def test_operations_snapshot_uses_companion_bridge():
     snapshot = await client.async_get_operations_snapshot()
 
     assert snapshot["performance"]["Training"]["fps"] == 60
+    assert snapshot["performance"]["Training"]["memory_gib"] == 9.3
     assert session.request_data[1] == "http://127.0.0.1:9877/operations/snapshot"
