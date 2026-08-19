@@ -14,6 +14,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
     UnitOfFrequency,
+    UnitOfInformation,
     UnitOfSpeed,
     UnitOfTemperature,
     UnitOfTime,
@@ -544,9 +545,9 @@ class DCSServerCPUSensor(DCSServerPerformanceSensor):
 class DCSServerMemorySensor(DCSServerPerformanceSensor):
     _attr_translation_key = "memory"
     _attr_icon = "mdi:memory"
-    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_native_unit_of_measurement = UnitOfInformation.GIBIBYTES
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _performance_key = "memory_percent"
+    _performance_key = "memory_gib"
 
     def __init__(self, coordinator: DCSServerBotCoordinator, server_name: str) -> None:
         super().__init__(coordinator, server_name, "memory")

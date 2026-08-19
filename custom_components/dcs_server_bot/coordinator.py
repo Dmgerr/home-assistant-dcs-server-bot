@@ -334,7 +334,7 @@ class DCSServerBotCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                             "alert_type": alert_type,
                             "fps": performance.get("fps"),
                             "cpu": performance.get("cpu"),
-                            "memory_percent": performance.get("memory_percent"),
+                            "memory_gib": performance.get("memory_gib"),
                         },
                     )
 

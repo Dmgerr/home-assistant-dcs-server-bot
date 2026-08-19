@@ -70,22 +70,20 @@ def operations_snapshot(connection: psycopg.Connection) -> dict:
                 SELECT server_name,
                        ROUND(AVG(fps), 2) AS fps_avg_15m,
                        ROUND(AVG(cpu), 2) AS cpu_avg_15m,
-                       ROUND(AVG(CASE WHEN mem_total > 0
-                                      THEN mem_ram * 100.0 / mem_total END), 2)
-                           AS memory_avg_15m
+                       ROUND(AVG(mem_ram) / POWER(1024.0, 3), 2)
+                           AS memory_avg_15m_gib
                 FROM serverstats
                 WHERE time >= (NOW() AT TIME ZONE 'utc') - INTERVAL '15 minutes'
                 GROUP BY server_name
             )
             SELECT l.server_name, l.mission_id, l.users, l.status, l.mission_time,
                    ROUND(l.cpu, 2) AS cpu,
-                   ROUND(CASE WHEN l.mem_total > 0
-                              THEN l.mem_ram * 100.0 / l.mem_total END, 2)
-                       AS memory_percent,
+                   ROUND(l.mem_ram / POWER(1024.0, 3), 2) AS memory_gib,
+                   ROUND(l.mem_total / POWER(1024.0, 3), 2) AS virtual_memory_gib,
                    ROUND(l.fps, 2) AS fps, ROUND(l.ping, 2) AS ping, l.time,
                    ROUND(EXTRACT(EPOCH FROM ((NOW() AT TIME ZONE 'utc') - l.time)))::INTEGER
                        AS sample_age_seconds,
-                   a.fps_avg_15m, a.cpu_avg_15m, a.memory_avg_15m
+                   a.fps_avg_15m, a.cpu_avg_15m, a.memory_avg_15m_gib
             FROM latest l
             LEFT JOIN averages a USING (server_name)
             ORDER BY l.server_name
