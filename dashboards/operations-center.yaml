@@ -1,7 +1,7 @@
 title: DCS Operations Center
 views:
-  - title: Centrum operacyjne
-    path: overview
+  - title: Misja na żywo
+    path: misja
     type: sections
     icon: mdi:radar
     max_columns: 4
@@ -9,64 +9,263 @@ views:
       - type: grid
         cards:
           - type: heading
-            heading: DCSServerBot
+            heading: Stan operacyjny
             heading_style: title
             icon: mdi:server-network
           - type: tile
             entity: binary_sensor.dcs_server_bot_api_connected
-            name: Połączenie API
-            grid_options: {columns: 6, rows: 2}
+            name: RestAPI
           - type: tile
-            entity: sensor.dcs_server_bot_online_servers
-            name: Serwery online
-            grid_options: {columns: 6, rows: 2}
+            entity: binary_sensor.dcs_server_bot_operations_telemetry_connected
+            name: Telemetria
           - type: tile
-            entity: sensor.dcs_server_bot_total_players
-            name: Gracze
-            grid_options: {columns: 6, rows: 2}
-          - type: history-graph
-            title: Aktywność
-            hours_to_show: 24
-            entities:
-              - sensor.dcs_server_bot_total_players
-              - sensor.dcs_server_bot_online_servers
-            grid_options: {columns: full, rows: 5}
+            entity: sensor.dcs_server_status
+            name: Stan serwera
+          - type: tile
+            entity: sensor.dcs_server_players
+            name: Piloci online
       - type: grid
         cards:
           - type: heading
-            heading: Serwer DCS
+            heading: Bieżąca misja
             heading_style: title
-            icon: mdi:airplane-cog
-          - type: tile
-            entity: sensor.dcs_server_status
-            name: Stan
-            grid_options: {columns: 6, rows: 2}
-          - type: tile
-            entity: sensor.dcs_server_players
-            name: Gracze
-            grid_options: {columns: 6, rows: 2}
+            icon: mdi:map-marker-path
           - type: tile
             entity: sensor.dcs_server_mission
             name: Misja
-            grid_options: {columns: full, rows: 2}
           - type: tile
             entity: sensor.dcs_server_mission_uptime
             name: Czas misji
-            grid_options: {columns: 6, rows: 2}
           - type: tile
-            entity: sensor.dcs_server_scheduled_restart
-            name: Planowany restart
-            grid_options: {columns: 6, rows: 2}
+            entity: sensor.dcs_server_mission_temperature
+            name: Temperatura
+          - type: tile
+            entity: sensor.dcs_server_mission_wind_speed
+            name: Wiatr
       - type: grid
         cards:
           - type: heading
             heading: Sterowanie
             heading_style: title
             icon: mdi:shield-key
+          - type: tile
+            entity: select.dcs_server_load_mission
+            name: Wybierz misję
+          - type: tile
+            entity: button.dcs_server_restart_mission
+            name: Restart misji
+            tap_action:
+              action: perform-action
+              perform_action: button.press
+              target: {entity_id: button.dcs_server_restart_mission}
+              confirmation: {text: Na pewno zrestartować misję?}
+          - type: tile
+            entity: button.dcs_server_restart_server
+            name: Restart serwera
+            tap_action:
+              action: perform-action
+              perform_action: button.press
+              target: {entity_id: button.dcs_server_restart_server}
+              confirmation: {text: Na pewno zrestartować serwer DCS?}
+
+  - title: Piloci
+    path: piloci
+    type: sections
+    icon: mdi:account-group
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Piloci online
+            heading_style: title
+            icon: mdi:account-multiple
+          - type: tile
+            entity: sensor.dcs_server_players
+          - type: markdown
+            title: Skład
+            content: >-
+              {% for p in state_attr('sensor.dcs_server_players', 'players') or [] %}
+              **{{ p.nick }}** — {{ p.side or 'brak strony' }} · {{ p.unit_type or 'bez slotu' }}<br>
+              {% else %}Brak aktywnych pilotów.{% endfor %}
+      - type: grid
+        cards:
+          - type: heading
+            heading: Ważni gracze
+            heading_style: title
+            icon: mdi:account-star
+          - type: tile
+            entity: input_text.dcs_wazni_gracze
+            name: Lista powiadomień
+          - type: tile
+            entity: sensor.dcs_server_bot_important_players
+            name: VIP w DCSServerBot
+      - type: grid
+        cards:
+          - type: heading
+            heading: Moderacja
+            heading_style: title
+            icon: mdi:shield-account
+          - type: tile
+            entity: select.dcs_server_player_to_moderate
+          - type: tile
+            entity: button.dcs_server_kick_selected_player
+          - type: tile
+            entity: button.dcs_server_ban_selected_player_for_1_day
+
+  - title: Lotniska i magazyny
+    path: lotniska
+    type: sections
+    icon: mdi:airport
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Lotniska misji
+            heading_style: title
+            icon: mdi:airport
+          - type: tile
+            entity: sensor.dcs_server_airbases
+            name: Liczba lotnisk
+          - type: markdown
+            title: Lotniska
+            content: >-
+              {% for a in state_attr('sensor.dcs_server_airbases', 'airbases') or [] %}
+              **{{ a.name }}** · {{ a.coalition or 'neutralne' }}{% if a.code %} · {{ a.code }}{% endif %}<br>
+              {% else %}Brak danych z aktywnej misji.{% endfor %}
+      - type: grid
+        cards:
+          - type: heading
+            heading: Magazyn
+            heading_style: title
+            icon: mdi:warehouse
+          - type: tile
+            entity: select.dcs_server_airbase_warehouse
+            name: Wybierz lotnisko
+          - type: tile
+            entity: sensor.dcs_server_airbase_warehouse
+            name: Odczytany magazyn
+          - type: markdown
+            title: Statki powietrzne
+            content: >-
+              {% for i in state_attr('sensor.dcs_server_airbase_warehouse', 'aircraft') or [] %}
+              {{ i.item }}: **{{ i.quantity }}**<br>
+              {% else %}Brak danych lub zapasy bez limitu.{% endfor %}
+
+  - title: Statystyki i rankingi
+    path: rankingi
+    type: sections
+    icon: mdi:trophy
+    max_columns: 4
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Statystyki globalne
+            heading_style: title
+            icon: mdi:chart-box
+          - type: tile
+            entity: sensor.dcs_server_bot_registered_pilots
+          - type: tile
+            entity: sensor.dcs_server_bot_total_sorties
+          - type: tile
+            entity: sensor.dcs_server_bot_total_kills
+          - type: tile
+            entity: sensor.dcs_server_bot_total_deaths
+      - type: grid
+        cards:
+          - type: heading
+            heading: Ranking zestrzeleń
+            heading_style: title
+            icon: mdi:target
           - type: markdown
             content: >-
-              Sterowanie musi być włączone w opcjach integracji. Sprawdź
-              automatycznie utworzone encje przycisków dla konkretnego serwera i
-              dodaj do każdego `confirmation`.
-            grid_options: {columns: full, rows: 3}
+              {% for p in state_attr('sensor.dcs_server_bot_rankings', 'top_kills') or [] %}
+              **{{ loop.index }}. {{ p.nick or p.name }}** — {{ p.kills }}<br>
+              {% else %}Brak danych rankingowych.{% endfor %}
+      - type: grid
+        cards:
+          - type: heading
+            heading: Ranking K/D
+            heading_style: title
+            icon: mdi:chart-line
+          - type: markdown
+            content: >-
+              {% for p in state_attr('sensor.dcs_server_bot_rankings', 'top_kdr') or [] %}
+              **{{ loop.index }}. {{ p.nick or p.name }}** — {{ p.kdr or p.kd or '-' }}<br>
+              {% else %}Brak danych rankingowych.{% endfor %}
 
+  - title: Serwer i wydajność
+    path: wydajnosc
+    type: sections
+    icon: mdi:speedometer
+    max_columns: 4
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Telemetria DCS
+            heading_style: title
+            icon: mdi:chart-timeline-variant
+          - type: tile
+            entity: sensor.dcs_server_fps
+          - type: tile
+            entity: sensor.dcs_server_dcs_cpu
+          - type: tile
+            entity: sensor.dcs_server_dcs_memory
+          - type: tile
+            entity: sensor.dcs_server_server_ping
+          - type: history-graph
+            title: Ostatnie 6 godzin
+            hours_to_show: 6
+            entities:
+              - sensor.dcs_server_fps
+              - sensor.dcs_server_dcs_cpu
+              - sensor.dcs_server_dcs_memory
+      - type: grid
+        cards:
+          - type: heading
+            heading: Alarmy wydajności
+            heading_style: title
+            icon: mdi:alert-decagram
+          - type: tile
+            entity: binary_sensor.dcs_server_low_fps
+          - type: tile
+            entity: binary_sensor.dcs_server_mission_stalled
+          - type: tile
+            entity: sensor.dcs_server_last_telemetry
+
+  - title: AAR i historia
+    path: aar
+    type: sections
+    icon: mdi:file-document-check-outline
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Ostatni AAR
+            heading_style: title
+            icon: mdi:clipboard-text-clock
+          - type: tile
+            entity: sensor.dcs_server_last_mission_aar
+          - type: markdown
+            content: >-
+              {% set a = states.sensor.dcs_server_last_mission_aar.attributes %}
+              **{{ states('sensor.dcs_server_last_mission_aar') }}**<br>
+              Piloci: {{ a.unique_pilots or 0 }} · loty: {{ a.sorties or 0 }}<br>
+              Zestrzelenia: {{ a.kills or 0 }} · PvP: {{ a.pvp_kills or 0 }} · śmierci: {{ a.deaths or 0 }}<br>
+              Starty/lądowania: {{ a.takeoffs or 0 }}/{{ a.landings or 0 }} · rozbicia: {{ a.crashes or 0 }}
+      - type: grid
+        cards:
+          - type: heading
+            heading: Historia misji
+            heading_style: title
+            icon: mdi:history
+          - type: markdown
+            content: >-
+              {% for m in state_attr('sensor.dcs_server_bot_mission_history', 'missions') or [] %}
+              **{{ m.mission_name }}** · {{ m.mission_theatre or '-' }}<br>
+              {{ m.unique_pilots or 0 }} pilotów · {{ m.sorties or 0 }} lotów · {{ m.kills or 0 }} zestrzeleń · {{ m.deaths or 0 }} śmierci<br>
+              {% else %}Brak historii misji.{% endfor %}
