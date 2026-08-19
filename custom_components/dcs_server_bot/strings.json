@@ -49,8 +49,11 @@
     "binary_sensor": {
       "api_connected": {"name": "API connected"},
       "moderation_connected": {"name": "Moderation bridge connected"},
+      "operations_connected": {"name": "Operations telemetry connected"},
       "running": {"name": "Running"},
-      "paused": {"name": "Mission paused"}
+      "paused": {"name": "Mission paused"},
+      "low_fps": {"name": "Low FPS"},
+      "mission_stalled": {"name": "Mission stalled"}
     },
     "sensor": {
       "server_count": {"name": "Servers"},
@@ -74,6 +77,17 @@
       "unique_pilots_7d": {"name": "Unique pilots (7 d)"},
       "unique_pilots_30d": {"name": "Unique pilots (30 d)"},
       "attendance": {"name": "Attendance details"}
+      ,"rankings": {"name": "Rankings"}
+      ,"mission_history": {"name": "Mission history"}
+      ,"vip_players": {"name": "Important players"}
+      ,"fps": {"name": "FPS"}
+      ,"cpu": {"name": "DCS CPU"}
+      ,"memory": {"name": "DCS memory"}
+      ,"ping": {"name": "Server ping"}
+      ,"telemetry_time": {"name": "Last telemetry"}
+      ,"airbases": {"name": "Airbases"}
+      ,"warehouse": {"name": "Airbase warehouse"}
+      ,"last_aar": {"name": "Last mission AAR"}
     },
     "button": {
       "start": {"name": "Start server"},
@@ -89,7 +103,8 @@
     },
     "select": {
       "mission_select": {"name": "Load mission"},
-      "player_select": {"name": "Player to moderate"}
+      "player_select": {"name": "Player to moderate"},
+      "airbase_select": {"name": "Airbase warehouse"}
     }
   },
   "exceptions": {
@@ -102,6 +117,8 @@
     "player_required": {"message": "Select an active player first."},
     "server_required": {"message": "A server name is required for kick."},
     "moderation_disabled": {"message": "Player moderation is disabled in integration options."},
-    "moderation_failed": {"message": "Player moderation failed: {error}"}
+    "moderation_failed": {"message": "Player moderation failed: {error}"},
+    "unknown_airbase": {"message": "Airbase {airbase_name} is not available."},
+    "airbase_failed": {"message": "Airbase warehouse request failed: {error}"}
   }
 }
