@@ -151,6 +151,69 @@ class DCSServerBotClient:
             )
         return dict(payload)
 
+    async def async_get_top_kills(
+        self, *, limit: int = 10, server_name: str | None = None
+    ) -> list[dict[str, Any]]:
+        """Return the kill leaderboard."""
+        params = {"limit": str(limit)}
+        if server_name:
+            params["server_name"] = server_name
+        payload = await self._async_request("GET", "/topkills", params=params)
+        if not isinstance(payload, list):
+            raise DCSServerBotResponseError("The /topkills endpoint did not return a list")
+        return [dict(item) for item in payload if isinstance(item, Mapping)]
+
+    async def async_get_top_kdr(
+        self, *, limit: int = 10, server_name: str | None = None
+    ) -> list[dict[str, Any]]:
+        """Return the K/D leaderboard."""
+        params = {"limit": str(limit)}
+        if server_name:
+            params["server_name"] = server_name
+        payload = await self._async_request("GET", "/topkdr", params=params)
+        if not isinstance(payload, list):
+            raise DCSServerBotResponseError("The /topkdr endpoint did not return a list")
+        return [dict(item) for item in payload if isinstance(item, Mapping)]
+
+    async def async_get_highscore(self, *, limit: int = 5, period: str = "all") -> dict[str, Any]:
+        """Return high-score categories."""
+        payload = await self._async_request(
+            "GET", "/highscore", params={"limit": str(limit), "period": period}
+        )
+        if not isinstance(payload, Mapping):
+            raise DCSServerBotResponseError("The /highscore endpoint returned invalid data")
+        return dict(payload)
+
+    async def async_get_airbases(self, server_name: str) -> list[dict[str, Any]]:
+        """Return airbases in the active mission."""
+        payload = await self._async_request("GET", "/airbases", params={"server_name": server_name})
+        if not isinstance(payload, Mapping) or not isinstance(payload.get("airbases"), list):
+            raise DCSServerBotResponseError("The /airbases endpoint returned invalid data")
+        return [dict(item) for item in payload["airbases"] if isinstance(item, Mapping)]
+
+    async def async_get_airbase_warehouse(
+        self, server_name: str, airbase_name: str
+    ) -> dict[str, Any]:
+        """Return stock information for one selected airbase."""
+        payload = await self._async_request(
+            "GET",
+            "/airbase/warehouse",
+            params={"server_name": server_name, "airbase_name": airbase_name},
+            timeout=ClientTimeout(total=75),
+        )
+        if not isinstance(payload, Mapping):
+            raise DCSServerBotResponseError("The /airbase/warehouse endpoint returned invalid data")
+        return dict(payload)
+
+    async def async_get_operations_snapshot(self) -> dict[str, Any]:
+        """Return read-only performance, VIP and mission-history data."""
+        payload = await self._async_request("GET", "/operations/snapshot", moderation=True)
+        if not isinstance(payload, Mapping):
+            raise DCSServerBotResponseError(
+                "The operations companion endpoint returned invalid data"
+            )
+        return dict(payload)
+
     async def async_control(
         self,
         endpoint: str,
