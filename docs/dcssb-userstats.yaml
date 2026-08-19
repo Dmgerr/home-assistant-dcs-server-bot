@@ -1,0 +1,7 @@
+# Place this file at: <DCSServerBot>/config/plugins/userstats.yaml
+#
+# DCSServerBot loads UserStats by default, but its statistics-view refresh task
+# starts only when this configuration file exists. No Discord highscore channel
+# is configured by this minimal example.
+DEFAULT:
+  wipe_stats_on_leave: true

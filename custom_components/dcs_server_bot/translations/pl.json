@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Połącz z DCSServerBot",
-        "description": "Plugin RestAPI w DCSServerBot musi być włączony. Użyj klucza API i nie wystawiaj API do internetu.",
+        "description": "Plugin RestAPI w DCSServerBot musi być włączony. Utwórz także config/plugins/userstats.yaml, inaczej zbiorcze statystyki lotów pozostaną nieaktualne. Użyj klucza API i nie wystawiaj API do internetu.",
         "data": {
           "name": "Nazwa",
           "url": "Adres REST API",

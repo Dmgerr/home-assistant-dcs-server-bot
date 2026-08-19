@@ -1,7 +1,7 @@
 {
   "title": "DCS Server Bot Operations Center",
   "config": {
-    "step": {"user": {"title": "Connexion à DCSServerBot", "description": "Le plugin RestAPI doit être activé. Utilisez une clé API et n'exposez pas l'API sur Internet.", "data": {"name": "Nom", "url": "URL de l'API REST", "api_key": "Clé API", "verify_ssl": "Vérifier le certificat TLS"}}},
+    "step": {"user": {"title": "Connexion à DCSServerBot", "description": "Le plugin RestAPI doit être activé. Créez aussi config/plugins/userstats.yaml, sinon les statistiques de vol agrégées resteront obsolètes. Utilisez une clé API et n'exposez pas l'API sur Internet.", "data": {"name": "Nom", "url": "URL de l'API REST", "api_key": "Clé API", "verify_ssl": "Vérifier le certificat TLS"}}},
     "error": {"cannot_connect": "Impossible de joindre DCSServerBot", "invalid_auth": "La clé API a été refusée", "invalid_response": "Réponse DCSServerBot invalide", "invalid_url": "Saisissez une URL HTTP ou HTTPS valide"},
     "abort": {"already_configured": "Cette API est déjà configurée", "reauth_successful": "Authentification mise à jour"}
   }

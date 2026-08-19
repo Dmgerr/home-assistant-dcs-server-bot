@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Connect to DCSServerBot",
-        "description": "The DCSServerBot RestAPI plugin must be enabled. Use an API key and do not expose the API to the internet.",
+        "description": "The DCSServerBot RestAPI plugin must be enabled. Create config/plugins/userstats.yaml too, otherwise aggregate flight statistics remain stale. Use an API key and do not expose the API to the internet.",
         "data": {
           "name": "Name",
           "url": "REST API URL",
