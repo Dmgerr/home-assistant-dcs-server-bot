@@ -29,6 +29,8 @@ integration's options.
 
 - Home Assistant 2025.1 or newer
 - DCSServerBot 3.x with the optional `restapi` plugin
+- A `config/plugins/userstats.yaml` file so DCSServerBot refreshes its
+  materialized statistics views
 - Network access from Home Assistant to the DCSServerBot WebService
 
 ## DCSServerBot configuration
@@ -58,6 +60,22 @@ DEFAULT:
     servers:
       include_weather: true
 ```
+
+Create `config/plugins/userstats.yaml` as well. This file is required even if
+you do not use the UserStats Discord commands. DCSServerBot loads the plugin by
+default, but only starts its hourly statistics-view refresh task when the
+plugin has a configuration file. Without it, `/serverstats` keeps returning
+old sortie, kill, death and playtime totals while raw flight data continues to
+be recorded.
+
+```yaml
+DEFAULT:
+  wipe_stats_on_leave: true
+```
+
+A ready-to-copy example is available at
+[`docs/dcssb-userstats.yaml`](docs/dcssb-userstats.yaml). Do not add
+`userstats` to `opt_plugins`; only the configuration file is needed.
 
 Restart **DCSServerBot**, not the DCS game server. Permit TCP 9876 only from
 your trusted LAN or, preferably, only from the Home Assistant host. Never
@@ -137,6 +155,9 @@ setup before importing the example.
 - **No moderation entities:** start and secure the companion bridge, then enable
   moderation and provide its URL in the integration options.
 - **Some servers are missing:** check the RestAPI `servers` endpoint filters.
+- **Sorties, kills, deaths or playtime never update:** make sure
+  `config/plugins/userstats.yaml` exists, then restart DCSServerBot. Existing
+  DCS game-server processes and missions do not need to be restarted.
 - Download diagnostics from the integration menu before opening an issue.
 
 ## Security
