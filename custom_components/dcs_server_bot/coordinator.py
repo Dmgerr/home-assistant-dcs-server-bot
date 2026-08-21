@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -24,7 +25,9 @@ from .const import (
     DEFAULT_ENABLE_MODERATION,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    EVENT_DDOS_STATUS_CHANGED,
     EVENT_IMPORTANT_PLAYER_JOINED,
+    EVENT_MISSION_ACTIVITY,
     EVENT_MISSION_ENDED,
     EVENT_PERFORMANCE_ALERT,
     EVENT_PLAYER_JOINED,
@@ -66,11 +69,15 @@ class DCSServerBotCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._airbases: dict[str, list[dict[str, Any]]] = {}
         self._warehouses: dict[str, dict[str, Any]] = {}
         self._operations: dict[str, Any] = {}
+        self._greenieboards: dict[str, dict[str, Any]] = {}
+        self._mission_layers: dict[str, dict[str, Any]] = {}
         self._alerts: dict[str, dict[str, bool]] = {}
         self._previous_alerts: dict[str, dict[str, bool]] = {}
         self._low_fps_since: dict[str, datetime] = {}
         self._mission_progress: dict[str, tuple[str, int, datetime]] = {}
         self._active_mission_ids: dict[str, int] = {}
+        self._known_activity_ids: set[int] | None = None
+        self._ddos_active: bool | None = None
         self._statistics_updated_at: datetime | None = None
         self._extended_updated_at: datetime | None = None
         super().__init__(
@@ -133,6 +140,8 @@ class DCSServerBotCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "airbases": self._airbases,
                 "warehouses": self._warehouses,
                 "operations": self._operations,
+                "greenieboards": self._greenieboards,
+                "mission_layers": self._mission_layers,
                 "alerts": self._alerts,
                 "moderation_available": moderation_available,
                 "operations_available": bool(self._operations),
@@ -196,6 +205,28 @@ class DCSServerBotCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             except DCSServerBotError as err:
                 _LOGGER.debug("Unable to update airbases for %s: %s", server_name, err)
 
+            results = await asyncio.gather(
+                self.client.async_get_greenieboard(server_name),
+                self.client.async_get_mission_bullseyes(server_name),
+                self.client.async_get_mission_drawings(server_name),
+                return_exceptions=True,
+            )
+            greenieboard, bullseyes, drawings = results
+            if isinstance(greenieboard, dict):
+                self._greenieboards[server_name] = greenieboard
+            elif isinstance(greenieboard, Exception):
+                _LOGGER.debug("Unable to update Greenieboard for %s: %s", server_name, greenieboard)
+
+            layers = self._mission_layers.setdefault(server_name, {})
+            if isinstance(bullseyes, list):
+                layers["bullseyes"] = bullseyes
+            elif isinstance(bullseyes, Exception):
+                _LOGGER.debug("Unable to update bullseyes for %s: %s", server_name, bullseyes)
+            if isinstance(drawings, dict):
+                layers["drawings"] = drawings
+            elif isinstance(drawings, Exception):
+                _LOGGER.debug("Unable to update drawings for %s: %s", server_name, drawings)
+
     def _build_alerts(
         self, servers: dict[str, dict[str, Any]], now: datetime
     ) -> dict[str, dict[str, bool]]:
@@ -247,7 +278,12 @@ class DCSServerBotCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Emit useful HA events only after the initial successful poll."""
         if self._previous is None:
             self._active_mission_ids = self._current_active_mission_ids()
+            self._known_activity_ids = self._current_activity_ids()
+            self._ddos_active = bool(self._operations.get("firewall", {}).get("under_attack"))
             return
+
+        self._fire_activity_events()
+        self._fire_ddos_event()
 
         for server_name, current in servers.items():
             previous = self._previous.get(server_name, {})
@@ -339,6 +375,44 @@ class DCSServerBotCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     )
 
         self._active_mission_ids = self._current_active_mission_ids()
+
+    def _current_activity_ids(self) -> set[int]:
+        """Return IDs of activity rows currently present in the bridge window."""
+        return {
+            int(item["id"])
+            for item in self._operations.get("events", [])
+            if item.get("id") is not None
+        }
+
+    def _fire_activity_events(self) -> None:
+        """Publish newly observed mission activity in chronological order."""
+        current_ids = self._current_activity_ids()
+        known_ids = self._known_activity_ids or set()
+        new_events = [
+            item
+            for item in reversed(self._operations.get("events", []))
+            if item.get("id") is not None and int(item["id"]) not in known_ids
+        ]
+        for item in new_events:
+            self.hass.bus.async_fire(
+                EVENT_MISSION_ACTIVITY,
+                {"entry_id": self.entry.entry_id, **dict(item)},
+            )
+        self._known_activity_ids = current_ids
+
+    def _fire_ddos_event(self) -> None:
+        """Publish a state transition when the official firewall detects an attack."""
+        current = bool(self._operations.get("firewall", {}).get("under_attack"))
+        if self._ddos_active is not None and current != self._ddos_active:
+            self.hass.bus.async_fire(
+                EVENT_DDOS_STATUS_CHANGED,
+                {
+                    "entry_id": self.entry.entry_id,
+                    "under_attack": current,
+                    "firewall": self._operations.get("firewall", {}),
+                },
+            )
+        self._ddos_active = current
 
     def _current_active_mission_ids(self) -> dict[str, int]:
         """Return current mission database IDs grouped by server."""

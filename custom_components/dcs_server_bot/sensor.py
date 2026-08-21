@@ -13,6 +13,7 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
+    UnitOfDataRate,
     UnitOfFrequency,
     UnitOfInformation,
     UnitOfSpeed,
@@ -47,6 +48,12 @@ async def async_setup_entry(
         DCSRankingsSensor(coordinator),
         DCSMissionHistorySensor(coordinator),
         DCSVIPPlayersSensor(coordinator),
+        DCSMissionActivitySensor(coordinator),
+        DCSFirewallStatusSensor(coordinator),
+        DCSBlockedAddressesSensor(coordinator),
+        DCSNetworkReceiveSensor(coordinator),
+        DCSNetworkTransmitSensor(coordinator),
+        DCSNUMATopologySensor(coordinator),
     ]
     for server_name in coordinator.data.get("servers", {}):
         entities.extend(
@@ -72,6 +79,11 @@ async def async_setup_entry(
                 DCSServerAirbasesSensor(coordinator, server_name),
                 DCSServerWarehouseSensor(coordinator, server_name),
                 DCSServerLastAARSensor(coordinator, server_name),
+                DCSServerMissionWeatherSensor(coordinator, server_name),
+                DCSServerGreenieboardSensor(coordinator, server_name),
+                DCSServerBullseyesSensor(coordinator, server_name),
+                DCSServerMissionDrawingsSensor(coordinator, server_name),
+                DCSServerCPUAffinitySensor(coordinator, server_name),
             ]
         )
     async_add_entities(entities)
@@ -677,6 +689,292 @@ class DCSServerLastAARSensor(DCSServerEntity, SensorEntity):
     @property
     def native_value(self) -> str | None:
         return self._record.get("mission_name")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return self._record
+
+
+class DCSMissionActivitySensor(DCSServerBotEntity, SensorEntity):
+    _attr_translation_key = "mission_activity"
+    _attr_icon = "mdi:timeline-clock-outline"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator) -> None:
+        super().__init__(coordinator, "mission_activity")
+
+    @property
+    def _events(self) -> list[dict[str, Any]]:
+        return self.coordinator.data.get("operations", {}).get("events", [])[:100]
+
+    @property
+    def native_value(self) -> str | None:
+        return str(self._events[0].get("event")) if self._events else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {"events": self._events, "event_count": len(self._events)}
+
+
+class DCSFirewallStatusSensor(DCSServerBotEntity, SensorEntity):
+    _attr_translation_key = "firewall_status"
+    _attr_icon = "mdi:shield-lock-outline"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator) -> None:
+        super().__init__(coordinator, "firewall_status")
+
+    @property
+    def native_value(self) -> str:
+        firewall = self.coordinator.data.get("operations", {}).get("firewall", {})
+        profiles = firewall.get("profiles") or []
+        if profiles and not all(bool(item.get("enabled")) for item in profiles):
+            return "firewall_disabled"
+        if not firewall.get("service_configured"):
+            return "monitoring_not_configured"
+        return "under_attack" if firewall.get("under_attack") else "protected"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        firewall = self.coordinator.data.get("operations", {}).get("firewall", {})
+        return {
+            "service_configured": bool(firewall.get("service_configured")),
+            "profiles": firewall.get("profiles", []),
+            "ports": firewall.get("ports", [])[:24],
+            "under_attack": bool(firewall.get("under_attack")),
+            "read_error": bool(firewall.get("read_error")),
+        }
+
+
+class DCSBlockedAddressesSensor(DCSServerBotEntity, SensorEntity):
+    _attr_translation_key = "blocked_addresses"
+    _attr_icon = "mdi:ip-off-outline"
+    _attr_native_unit_of_measurement = "addresses"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator: DCSServerBotCoordinator) -> None:
+        super().__init__(coordinator, "blocked_addresses")
+
+    @property
+    def native_value(self) -> int:
+        return len(
+            self.coordinator.data.get("operations", {})
+            .get("firewall", {})
+            .get("blocked_ips", [])
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            "blocked_ips": self.coordinator.data.get("operations", {})
+            .get("firewall", {})
+            .get("blocked_ips", [])[:100]
+        }
+
+
+class DCSNetworkRateSensor(DCSServerBotEntity, SensorEntity):
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfDataRate.BYTES_PER_SECOND
+    _performance_key: str
+
+    @property
+    def native_value(self) -> float:
+        performance = self.coordinator.data.get("operations", {}).get("performance", {})
+        return round(
+            sum(
+                float(item.get(self._performance_key) or 0)
+                for item in performance.values()
+                if isinstance(item, dict)
+            ),
+            2,
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        performance = self.coordinator.data.get("operations", {}).get("performance", {})
+        return {
+            "servers": {
+                name: item.get(self._performance_key)
+                for name, item in performance.items()
+                if isinstance(item, dict)
+            }
+        }
+
+
+class DCSNetworkReceiveSensor(DCSNetworkRateSensor):
+    _attr_translation_key = "network_receive"
+    _attr_icon = "mdi:download-network-outline"
+    _performance_key = "bytes_recv"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator) -> None:
+        super().__init__(coordinator, "network_receive")
+
+
+class DCSNetworkTransmitSensor(DCSNetworkRateSensor):
+    _attr_translation_key = "network_transmit"
+    _attr_icon = "mdi:upload-network-outline"
+    _performance_key = "bytes_sent"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator) -> None:
+        super().__init__(coordinator, "network_transmit")
+
+
+class DCSNUMATopologySensor(DCSServerBotEntity, SensorEntity):
+    _attr_translation_key = "numa_topology"
+    _attr_icon = "mdi:chip"
+    _attr_native_unit_of_measurement = "nodes"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator) -> None:
+        super().__init__(coordinator, "numa_topology")
+
+    @property
+    def _topology(self) -> dict[str, Any]:
+        return (
+            self.coordinator.data.get("operations", {})
+            .get("system", {})
+            .get("topology", {})
+        )
+
+    @property
+    def native_value(self) -> int:
+        return len(self._topology.get("numa_nodes", []))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return self._topology
+
+
+class DCSServerMissionWeatherSensor(DCSServerEntity, SensorEntity):
+    _attr_translation_key = "mission_weather"
+    _attr_icon = "mdi:weather-partly-cloudy"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator, server_name: str) -> None:
+        super().__init__(coordinator, server_name, "mission_weather")
+
+    @property
+    def native_value(self) -> str | None:
+        weather = self.server.get("weather") or {}
+        if not weather:
+            return None
+        if float(weather.get("precipitation") or 0) > 0:
+            return "precipitation"
+        if bool(weather.get("fog_enabled")):
+            return "fog"
+        density = float(weather.get("clouds_density") or 0)
+        return "cloudy" if density >= 7 else "partly_cloudy" if density >= 3 else "clear"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return dict(self.server.get("weather") or {})
+
+
+class DCSServerGreenieboardSensor(DCSServerEntity, SensorEntity):
+    _attr_translation_key = "greenieboard"
+    _attr_icon = "mdi:airplane-marker"
+    _attr_native_unit_of_measurement = "pilots"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator, server_name: str) -> None:
+        super().__init__(coordinator, server_name, "greenieboard")
+
+    @property
+    def _players(self) -> list[dict[str, Any]]:
+        return (
+            self.coordinator.data.get("greenieboards", {})
+            .get(self.server_name, {})
+            .get("players", [])[:20]
+        )
+
+    @property
+    def native_value(self) -> int:
+        return len(self._players)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            "players": [
+                {**player, "traps": (player.get("traps") or [])[:10]}
+                for player in self._players
+            ]
+        }
+
+
+class DCSServerBullseyesSensor(DCSServerEntity, SensorEntity):
+    _attr_translation_key = "bullseyes"
+    _attr_icon = "mdi:bullseye-arrow"
+    _attr_native_unit_of_measurement = "points"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator, server_name: str) -> None:
+        super().__init__(coordinator, server_name, "bullseyes")
+
+    @property
+    def _points(self) -> list[dict[str, Any]]:
+        return (
+            self.coordinator.data.get("mission_layers", {})
+            .get(self.server_name, {})
+            .get("bullseyes", [])[:4]
+        )
+
+    @property
+    def native_value(self) -> int:
+        return len(self._points)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {"bullseyes": self._points}
+
+
+class DCSServerMissionDrawingsSensor(DCSServerEntity, SensorEntity):
+    _attr_translation_key = "mission_drawings"
+    _attr_icon = "mdi:vector-polyline"
+    _attr_native_unit_of_measurement = "objects"
+
+    def __init__(self, coordinator: DCSServerBotCoordinator, server_name: str) -> None:
+        super().__init__(coordinator, server_name, "mission_drawings")
+
+    @property
+    def _drawings(self) -> dict[str, list[dict[str, Any]]]:
+        return (
+            self.coordinator.data.get("mission_layers", {})
+            .get(self.server_name, {})
+            .get("drawings", {})
+        )
+
+    @property
+    def native_value(self) -> int:
+        return sum(len(items) for items in self._drawings.values())
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        remaining = 100
+        layers: dict[str, list[dict[str, Any]]] = {}
+        for name, items in self._drawings.items():
+            if remaining <= 0:
+                break
+            layers[name] = items[:remaining]
+            remaining -= len(layers[name])
+        return {"layers": layers, "layer_count": len(self._drawings)}
+
+
+class DCSServerCPUAffinitySensor(DCSServerEntity, SensorEntity):
+    _attr_translation_key = "cpu_affinity"
+    _attr_icon = "mdi:chip"
+    _attr_native_unit_of_measurement = "threads"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: DCSServerBotCoordinator, server_name: str) -> None:
+        super().__init__(coordinator, server_name, "cpu_affinity")
+
+    @property
+    def _record(self) -> dict[str, Any]:
+        processes = (
+            self.coordinator.data.get("operations", {})
+            .get("system", {})
+            .get("process_affinity", [])
+        )
+        return next((item for item in processes if item.get("server_name") == self.server_name), {})
+
+    @property
+    def native_value(self) -> int | None:
+        cores = self._record.get("logical_processors")
+        return len(cores) if isinstance(cores, list) else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

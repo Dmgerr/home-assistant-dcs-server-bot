@@ -14,6 +14,8 @@ The bridge:
 - rejects clients outside its explicit IP allowlist.
 - exposes a read-only cached Operations Center snapshot with DCS performance,
   VIP-player names and aggregated mission history;
+- adds chronological mission events, network counters, Windows Firewall state,
+  blocked addresses, CPU/NUMA topology and DCS process affinity metadata;
 
 ## Requirements
 
@@ -41,7 +43,8 @@ automations.
 
 `GET /operations/snapshot` uses the same API key and allowlist as moderation.
 It is read-only and powers FPS/CPU/RAM/ping sensors, mission-stall detection,
-VIP join events and AAR history. Results are cached for 15 seconds to avoid
-unnecessary database load.
+VIP join events, AAR history, mission activity and security/performance
+telemetry. Database results are cached for 15 seconds and host topology for
+60 seconds to avoid unnecessary load.
 
 Never expose the RestAPI or the moderation bridge to the internet.

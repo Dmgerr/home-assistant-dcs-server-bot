@@ -21,7 +21,11 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator: DCSServerBotCoordinator = hass.data[DOMAIN][entry.entry_id]
-    entities: list[BinarySensorEntity] = [DCSAPIConnectedSensor(coordinator)]
+    entities: list[BinarySensorEntity] = [
+        DCSAPIConnectedSensor(coordinator),
+        DCSFirewallProtectionSensor(coordinator),
+        DCSDDoSAttackSensor(coordinator),
+    ]
     if coordinator.enable_moderation:
         entities.extend(
             [
@@ -75,6 +79,48 @@ class DCSOperationsConnectedSensor(DCSServerBotEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool:
         return bool(self.coordinator.data.get("operations_available"))
+
+
+class DCSFirewallProtectionSensor(DCSServerBotEntity, BinarySensorEntity):
+    _attr_translation_key = "firewall_protection"
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+
+    def __init__(self, coordinator: DCSServerBotCoordinator) -> None:
+        super().__init__(coordinator, "firewall_protection")
+
+    @property
+    def is_on(self) -> bool:
+        firewall = self.coordinator.data.get("operations", {}).get("firewall", {})
+        profiles = firewall.get("profiles") or []
+        return bool(
+            firewall.get("service_configured")
+            and profiles
+            and all(bool(item.get("enabled")) for item in profiles)
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        firewall = self.coordinator.data.get("operations", {}).get("firewall", {})
+        return {
+            "service_configured": bool(firewall.get("service_configured")),
+            "profiles": firewall.get("profiles", []),
+        }
+
+
+class DCSDDoSAttackSensor(DCSServerBotEntity, BinarySensorEntity):
+    _attr_translation_key = "ddos_attack"
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+
+    def __init__(self, coordinator: DCSServerBotCoordinator) -> None:
+        super().__init__(coordinator, "ddos_attack")
+
+    @property
+    def is_on(self) -> bool:
+        return bool(
+            self.coordinator.data.get("operations", {})
+            .get("firewall", {})
+            .get("under_attack")
+        )
 
 
 class DCSServerRunningSensor(DCSServerEntity, BinarySensorEntity):

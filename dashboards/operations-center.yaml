@@ -42,6 +42,22 @@ views:
           - type: tile
             entity: sensor.dcs_server_mission_wind_speed
             name: Wiatr
+          - type: tile
+            entity: sensor.dcs_server_mission_weather
+            name: Pełna pogoda misji
+          - type: markdown
+            title: Warunki w misji
+            content: >-
+              {% set w = states.sensor.dcs_server_mission_weather.attributes %}
+              Temperatura: **{{ w.temperature | default('-') }} °C** · wiatr:
+              **{{ w.wind_speed | default('-') }} m/s / {{ w.wind_direction | default('-') }}°**<br>
+              QNH: **{{ w.pressure | default('-') }} mmHg** · widzialność:
+              **{{ w.visibility | default('-') }} m**<br>
+              Chmury: podstawa {{ w.clouds_base | default('-') }} m · gęstość
+              {{ w.clouds_density | default('-') }} · grubość {{ w.clouds_thickness | default('-') }} m<br>
+              Opad: {{ w.precipitation | default(0) }} · mgła:
+              {{ 'tak' if w.fog_enabled else 'nie' }} · pył:
+              {{ 'tak' if w.dust_enabled else 'nie' }}
       - type: grid
         cards:
           - type: heading
@@ -235,6 +251,36 @@ views:
             entity: binary_sensor.dcs_server_mission_stalled
           - type: tile
             entity: sensor.dcs_server_last_telemetry
+      - type: grid
+        cards:
+          - type: heading
+            heading: Sieć, ochrona i NUMA
+            heading_style: title
+            icon: mdi:shield-server
+          - type: tile
+            entity: binary_sensor.dcs_server_bot_ddos_attack
+            name: Alarm DDoS
+          - type: tile
+            entity: binary_sensor.dcs_server_bot_firewall_protection
+            name: Ochrona zapory
+          - type: tile
+            entity: sensor.dcs_server_bot_firewall_status
+            name: Stan zapory
+          - type: tile
+            entity: sensor.dcs_server_bot_blocked_addresses
+            name: Zablokowane adresy
+          - type: tile
+            entity: sensor.dcs_server_bot_network_receive
+            name: Transfer przychodzący
+          - type: tile
+            entity: sensor.dcs_server_bot_network_transmit
+            name: Transfer wychodzący
+          - type: tile
+            entity: sensor.dcs_server_bot_numa_topology
+            name: Topologia NUMA
+          - type: tile
+            entity: sensor.dcs_server_cpu_affinity
+            name: Przydział CPU DCS
 
   - title: AAR i historia
     path: aar
@@ -269,3 +315,97 @@ views:
               **{{ m.mission_name }}** · {{ m.mission_theatre or '-' }}<br>
               {{ m.unique_pilots or 0 }} pilotów · {{ m.sorties or 0 }} lotów · {{ m.kills or 0 }} zestrzeleń · {{ m.deaths or 0 }} śmierci<br>
               {% else %}Brak historii misji.{% endfor %}
+
+  - title: Strumień zdarzeń
+    path: zdarzenia
+    type: sections
+    icon: mdi:timeline-clock-outline
+    max_columns: 2
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Zdarzenia misji
+            heading_style: title
+            icon: mdi:timeline-alert-outline
+          - type: tile
+            entity: sensor.dcs_server_bot_mission_activity
+            name: Ostatnie zdarzenie
+          - type: markdown
+            title: Chronologia
+            content: >-
+              {% set labels = {
+                'S_EVENT_TAKEOFF': '🛫 Start',
+                'S_EVENT_LAND': '🛬 Lądowanie',
+                'S_EVENT_HIT': '🎯 Trafienie',
+                'S_EVENT_KILL': '💥 Zestrzelenie',
+                'S_EVENT_DEAD': '☠️ Śmierć',
+                'S_EVENT_CRASH': '🔥 Katastrofa',
+                'S_EVENT_EJECTION': '🪂 Katapultowanie'
+              } %}
+              {% for e in state_attr('sensor.dcs_server_bot_mission_activity', 'events') or [] %}
+              **{{ as_timestamp(e.time) | timestamp_custom('%H:%M:%S') }} —
+              {{ labels.get(e.event, e.event) }}**{% if e.initiator %} · {{ e.initiator }}{% endif %}
+              {% if e.target %} → {{ e.target }}{% endif %}<br>
+              {% else %}Brak zdarzeń w historii.{% endfor %}
+
+  - title: Greenieboard
+    path: greenieboard
+    type: sections
+    icon: mdi:airplane-marker
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Lądowania na lotniskowcu
+            heading_style: title
+            icon: mdi:airplane-marker
+          - type: tile
+            entity: sensor.dcs_server_greenieboard
+            name: Sklasyfikowani piloci
+          - type: markdown
+            title: Wyniki
+            content: >-
+              {% for p in state_attr('sensor.dcs_server_greenieboard', 'players') or [] %}
+              **{{ loop.index }}. {{ p.nick }}** — {{ p.traps | count }} ostatnich lądowań<br>
+              {% for t in p.traps[:3] %}
+              &nbsp;&nbsp;{{ t.time }} · **{{ t.grade }}** · {{ t.points }} pkt ·
+              {{ t.place }}{% if t.wire %} · lina {{ t.wire }}{% endif %}<br>
+              {% endfor %}
+              {% else %}Brak zarejestrowanych lądowań na lotniskowcu.{% endfor %}
+
+  - title: Mapa na żywo
+    path: mapa-na-zywo
+    type: sections
+    icon: mdi:map
+    max_columns: 4
+    sections:
+      - type: grid
+        column_span: 4
+        cards:
+          - type: heading
+            heading: Olympus — jednostki i trasy
+            heading_style: title
+            icon: mdi:map-marker-path
+          - type: iframe
+            url: http://dcs-host:3001/
+            aspect_ratio: 60%
+      - type: grid
+        cards:
+          - type: heading
+            heading: Warstwy taktyczne
+            heading_style: title
+            icon: mdi:layers-triple
+          - type: tile
+            entity: sensor.dcs_server_bullseyes
+            name: Bullseye koalicji
+          - type: tile
+            entity: sensor.dcs_server_mission_drawings
+            name: Rysunki misji
+          - type: markdown
+            title: Bullseye
+            content: >-
+              {% for p in state_attr('sensor.dcs_server_bullseyes', 'bullseyes') or [] %}
+              **{{ p.coalition or p.side }}:** {{ p.lat or p.latitude }}, {{ p.lon or p.longitude }}<br>
+              {% else %}Warstwa pojawi się po następnym załadowaniu haka DCS.{% endfor %}

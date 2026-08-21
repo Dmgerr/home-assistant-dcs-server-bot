@@ -19,6 +19,14 @@ actions suitable for a dedicated Operations Center dashboard.
 - Kill, K/D and category leaderboards
 - DCS FPS, CPU, memory and ping telemetry with debounced health alerts
 - Mission AAR summaries and the last 20 mission records
+- Chronological mission activity: takeoffs, landings, hits, kills, deaths,
+  crashes and ejections
+- Full in-mission weather card
+- Greenieboard carrier-landing results
+- Live mission layer data for coalition bullseyes and mission drawings;
+  an Olympus iframe can provide units and routes
+- Read-only network throughput, Windows Firewall state, blocked-address list,
+  DDoS alarm state, NUMA topology and per-server CPU affinity
 - Events for mission completion, health alerts, server-state changes and players joining/leaving
 - Optional start, stop, restart, mission pause/resume/restart and mission selection
 - Optional player selector, kick and persistent ban/unban through a separate bridge
@@ -44,6 +52,8 @@ Add the optional plugin to `config/main.yaml`:
 ```yaml
 opt_plugins:
   - restapi
+  - greenieboard
+  - firewall
 ```
 
 Create `config/services/webservice.yaml`:
@@ -86,6 +96,11 @@ your trusted LAN or, preferably, only from the Home Assistant host. Never
 forward this port to the internet: the upstream API includes administrative
 endpoints.
 
+Greenieboard is optional. Firewall/DDoS monitoring should use `action: alert`
+first; automatic blocking is intentionally not required by this integration.
+Full UDP-source inspection on Windows requires Npcap. If Windows Firewall is
+disabled, the integration reports that state instead of claiming protection.
+
 ## Installation with HACS
 
 1. Open HACS → Integrations → three-dot menu → Custom repositories.
@@ -123,6 +138,8 @@ reads the existing DCSServerBot database and does not modify the bot.
 - `dcs_server_bot_important_player_joined`
 - `dcs_server_bot_mission_ended`
 - `dcs_server_bot_performance_alert`
+- `dcs_server_bot_mission_activity`
+- `dcs_server_bot_ddos_status_changed`
 
 Each event contains `server_name`; status events include `old_status` and
 `new_status`, while player events include `player`. Mission completion includes
@@ -156,8 +173,10 @@ The repository contains a native, responsive dashboard example in
 Entity IDs depend on the names assigned by Home Assistant, so review them after
 setup before importing the example.
 
-The full dashboard is organised into six views: live mission, pilots, airbases
-and warehouses, statistics and rankings, server performance, and AAR/history.
+The full dashboard includes live mission, pilots, airbases and warehouses,
+statistics and rankings, performance/security/NUMA, AAR/history, chronological
+events, Greenieboard and a live Olympus map with tactical layer metadata.
+Replace the example `http://dcs-host:3001/` iframe URL with your Olympus URL.
 Home Assistant automations can use the events above for end-of-mission reports,
 health alerts and important-player notifications; no voice assistant is needed.
 

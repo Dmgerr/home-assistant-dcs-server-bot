@@ -48,6 +48,8 @@
       "api_connected": {"name": "Połączenie z API"},
       "moderation_connected": {"name": "Połączenie z mostem moderacji"},
       "operations_connected": {"name": "Połączenie z telemetrią Operations"},
+      "firewall_protection": {"name": "Monitoring zapory aktywny"},
+      "ddos_attack": {"name": "Wykryto atak DDoS"},
       "running": {"name": "Uruchomiony"},
       "paused": {"name": "Misja wstrzymana"},
       "low_fps": {"name": "Niskie FPS"},
@@ -85,7 +87,18 @@
       "telemetry_time": {"name": "Ostatnia telemetria"},
       "airbases": {"name": "Lotniska"},
       "warehouse": {"name": "Magazyn lotniska"},
-      "last_aar": {"name": "Ostatni raport AAR"}
+      "last_aar": {"name": "Ostatni raport AAR"},
+      "mission_activity": {"name": "Zdarzenia misji"},
+      "firewall_status": {"name": "Stan zapory"},
+      "blocked_addresses": {"name": "Zablokowane adresy"},
+      "network_receive": {"name": "Transfer przychodzący"},
+      "network_transmit": {"name": "Transfer wychodzący"},
+      "numa_topology": {"name": "Topologia NUMA"},
+      "mission_weather": {"name": "Pogoda w misji"},
+      "greenieboard": {"name": "Greenieboard"},
+      "bullseyes": {"name": "Bullseye misji"},
+      "mission_drawings": {"name": "Warstwy rysunków misji"},
+      "cpu_affinity": {"name": "Przydział CPU"}
     },
     "button": {
       "start": {"name": "Uruchom serwer"},

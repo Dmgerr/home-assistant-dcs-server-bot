@@ -235,3 +235,45 @@ async def test_operations_snapshot_uses_companion_bridge():
     assert snapshot["performance"]["Training"]["fps"] == 60
     assert snapshot["performance"]["Training"]["memory_gib"] == 9.3
     assert session.request_data[1] == "http://127.0.0.1:9877/operations/snapshot"
+
+
+@pytest.mark.asyncio
+async def test_greenieboard_uses_form_payload():
+    session = FakeSession(
+        FakeResponse(200, {"players": [{"nick": "Ace", "traps": [{"grade": "OK"}]}]})
+    )
+    client = DCSServerBotClient(session, "http://127.0.0.1:9876", "secret")
+
+    payload = await client.async_get_greenieboard("Training")
+
+    assert payload["players"][0]["nick"] == "Ace"
+    assert session.request_data[0] == "POST"
+    assert session.request_data[1] == "http://127.0.0.1:9876/greenieboard"
+    assert session.request_data[2]["data"] == {"server_name": "Training"}
+
+
+@pytest.mark.asyncio
+async def test_live_mission_layers_are_parsed():
+    session = FakeSession(
+        [
+            FakeResponse(200, {"bullseyes": [{"coalition": "blue", "lat": 1, "lng": 2}]}),
+            FakeResponse(
+                200,
+                {
+                    "drawings": {
+                        "Author": [
+                            {"name": "AO", "primitiveType": "Line", "points": []}
+                        ]
+                    }
+                },
+            ),
+        ]
+    )
+    client = DCSServerBotClient(session, "http://127.0.0.1:9876", "secret")
+
+    bullseyes = await client.async_get_mission_bullseyes("Training")
+    drawings = await client.async_get_mission_drawings("Training")
+
+    assert bullseyes[0]["coalition"] == "blue"
+    assert drawings["Author"][0]["name"] == "AO"
+    assert all(request[2]["timeout"].total == 15 for request in session.requests)

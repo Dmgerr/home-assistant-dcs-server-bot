@@ -41,6 +41,8 @@ EVENT_PLAYER_LEFT = f"{DOMAIN}_player_left"
 EVENT_IMPORTANT_PLAYER_JOINED = f"{DOMAIN}_important_player_joined"
 EVENT_MISSION_ENDED = f"{DOMAIN}_mission_ended"
 EVENT_PERFORMANCE_ALERT = f"{DOMAIN}_performance_alert"
+EVENT_MISSION_ACTIVITY = f"{DOMAIN}_mission_activity"
+EVENT_DDOS_STATUS_CHANGED = f"{DOMAIN}_ddos_status_changed"
 
 SERVICE_START_SERVER = "start_server"
 SERVICE_STOP_SERVER = "stop_server"

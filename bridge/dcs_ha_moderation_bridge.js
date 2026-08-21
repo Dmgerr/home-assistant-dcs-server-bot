@@ -147,11 +147,31 @@ function databaseCommand(action, payload = {}) {
 }
 
 let operationsCache = { expires: 0, value: null };
+let systemCache = { expires: 0, value: null };
+
+async function systemSnapshot() {
+  const now = Date.now();
+  if (systemCache.value && systemCache.expires > now) return systemCache.value;
+  const value = await databaseCommand("system_snapshot");
+  systemCache = { expires: now + 60000, value };
+  return value;
+}
 
 async function operationsSnapshot() {
   const now = Date.now();
   if (operationsCache.value && operationsCache.expires > now) return operationsCache.value;
-  const value = await databaseCommand("operations_snapshot");
+  const [database, system] = await Promise.all([
+    databaseCommand("operations_snapshot"),
+    systemSnapshot(),
+  ]);
+  const value = {
+    ...database,
+    system,
+    firewall: {
+      ...(database.firewall || {}),
+      ...(system.firewall || {}),
+    },
+  };
   operationsCache = { expires: now + 15000, value };
   return value;
 }

@@ -50,6 +50,8 @@
       "api_connected": {"name": "API connected"},
       "moderation_connected": {"name": "Moderation bridge connected"},
       "operations_connected": {"name": "Operations telemetry connected"},
+      "firewall_protection": {"name": "Firewall monitoring active"},
+      "ddos_attack": {"name": "DDoS attack detected"},
       "running": {"name": "Running"},
       "paused": {"name": "Mission paused"},
       "low_fps": {"name": "Low FPS"},
@@ -88,6 +90,17 @@
       ,"airbases": {"name": "Airbases"}
       ,"warehouse": {"name": "Airbase warehouse"}
       ,"last_aar": {"name": "Last mission AAR"}
+      ,"mission_activity": {"name": "Mission activity"}
+      ,"firewall_status": {"name": "Firewall status"}
+      ,"blocked_addresses": {"name": "Blocked addresses"}
+      ,"network_receive": {"name": "Network receive"}
+      ,"network_transmit": {"name": "Network transmit"}
+      ,"numa_topology": {"name": "NUMA topology"}
+      ,"mission_weather": {"name": "Mission weather"}
+      ,"greenieboard": {"name": "Greenieboard"}
+      ,"bullseyes": {"name": "Mission bullseyes"}
+      ,"mission_drawings": {"name": "Mission drawings"}
+      ,"cpu_affinity": {"name": "CPU affinity"}
     },
     "button": {
       "start": {"name": "Start server"},

@@ -214,6 +214,54 @@ class DCSServerBotClient:
             )
         return dict(payload)
 
+    async def async_get_greenieboard(self, server_name: str) -> dict[str, Any]:
+        """Return recent carrier-landing grades for one server."""
+        payload = await self._async_request(
+            "POST",
+            "/greenieboard",
+            form_data={"server_name": server_name},
+            timeout=ClientTimeout(total=30),
+        )
+        if not isinstance(payload, Mapping):
+            raise DCSServerBotResponseError("The /greenieboard endpoint returned invalid data")
+        players = payload.get("players", [])
+        if not isinstance(players, list):
+            payload = dict(payload)
+            payload["players"] = []
+        return dict(payload)
+
+    async def async_get_mission_bullseyes(self, server_name: str) -> list[dict[str, Any]]:
+        """Return coalition bullseye coordinates for the active mission."""
+        payload = await self._async_request(
+            "GET",
+            "/mission/bullseyes",
+            params={"server_name": server_name},
+            timeout=ClientTimeout(total=15),
+        )
+        if not isinstance(payload, Mapping) or not isinstance(payload.get("bullseyes"), list):
+            raise DCSServerBotResponseError(
+                "The /mission/bullseyes endpoint returned invalid data"
+            )
+        return [dict(item) for item in payload["bullseyes"] if isinstance(item, Mapping)]
+
+    async def async_get_mission_drawings(self, server_name: str) -> dict[str, list[dict[str, Any]]]:
+        """Return mission drawing objects grouped by layer."""
+        payload = await self._async_request(
+            "GET",
+            "/mission/drawings",
+            params={"server_name": server_name},
+            timeout=ClientTimeout(total=15),
+        )
+        if not isinstance(payload, Mapping) or not isinstance(payload.get("drawings"), Mapping):
+            raise DCSServerBotResponseError(
+                "The /mission/drawings endpoint returned invalid data"
+            )
+        return {
+            str(layer): [dict(item) for item in items if isinstance(item, Mapping)]
+            for layer, items in payload["drawings"].items()
+            if isinstance(items, list)
+        }
+
     async def async_control(
         self,
         endpoint: str,
@@ -258,6 +306,7 @@ class DCSServerBotClient:
         *,
         params: Mapping[str, str] | None = None,
         json_data: Mapping[str, Any] | None = None,
+        form_data: Mapping[str, str] | None = None,
         moderation: bool = False,
         timeout: ClientTimeout | None = None,
     ) -> Any:
@@ -275,6 +324,7 @@ class DCSServerBotClient:
                 headers=headers,
                 params=params,
                 json=json_data,
+                data=form_data,
                 ssl=self._verify_ssl,
                 timeout=timeout or self._timeout,
             ) as response:
